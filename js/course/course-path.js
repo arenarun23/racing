@@ -43,6 +43,43 @@ export function buildCoursePath(course) {
     sampleAt(progress) {
       return samples[Math.floor(((progress % 1) + 1) % 1 * count) % count];
     },
+    // 한 점을 주행선 위에 투영한다: 진행률, 도로 높이, 중심선에서 떨어진 거리(좌우)
+    // hint(직전 표본 번호)를 주면 그 근처만 살펴서 빠르다
+    project(x, z, hint = -1) {
+      if (hint < 0) {
+        const n = nearestSample(grid, samples, x, z, 400);
+        if (!n) return null;
+        hint = n.sample.i;
+      }
+      let bi = hint;
+      let bu = 0;
+      let bx = 0;
+      let bz = 0;
+      let bestD2 = Infinity;
+      for (let k = -24; k <= 24; k++) {
+        const i = (hint + k + count) % count;
+        const a = samples[i].p;
+        const b = samples[(i + 1) % count].p;
+        const abx = b.x - a.x;
+        const abz = b.z - a.z;
+        let u = ((x - a.x) * abx + (z - a.z) * abz) / (abx * abx + abz * abz);
+        u = Math.max(0, Math.min(1, u));
+        const px = a.x + abx * u;
+        const pz = a.z + abz * u;
+        const d2 = (x - px) ** 2 + (z - pz) ** 2;
+        if (d2 < bestD2) { bestD2 = d2; bi = i; bu = u; bx = px; bz = pz; }
+      }
+      const s = samples[bi];
+      const nextY = samples[(bi + 1) % count].p.y;
+      return {
+        index: bi,
+        progress: (bi + bu) / count,
+        y: s.p.y + (nextY - s.p.y) * bu,
+        dist: Math.sqrt(bestD2),
+        lateral: (x - bx) * s.right.x + (z - bz) * s.right.z,
+        sample: s,
+      };
+    },
   };
 }
 

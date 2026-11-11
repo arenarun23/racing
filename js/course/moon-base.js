@@ -199,6 +199,7 @@ export function createLandmarks(path, heightAt) {
   const group = new THREE.Group();
   group.name = 'landmarks';
   const animated = [];
+  const colliders = [];
   const half = path.width / 2;
 
   for (const lm of path.course.landmarks || []) {
@@ -215,15 +216,38 @@ export function createLandmarks(path, heightAt) {
     obj.rotation.y = Math.atan2(-toRoad.x, -toRoad.z);
     group.add(obj);
     obj.traverse((o) => { if (o.userData.blink || o.userData.spin) animated.push(o); });
+    colliders.push(makeCollider(obj));
   }
 
   return {
     group,
+    colliders,
     update(time) {
       for (const o of animated) {
         if (o.userData.blink) o.visible = (time % o.userData.blink) < 0.25;
         if (o.userData.spin) o.rotation.y = time * o.userData.spin;
       }
     },
+  };
+}
+
+// 충돌 상자: 시설의 로컬 좌표에서 본 바닥 사각형 (그림자를 만드는 덩어리만 포함)
+function makeCollider(obj) {
+  const box = new THREE.Box3();
+  const tmp = new THREE.Box3();
+  obj.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(obj.matrixWorld).invert();
+  obj.traverse((o) => {
+    if (!o.isMesh || !o.castShadow) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    tmp.copy(o.geometry.boundingBox).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    box.union(tmp);
+  });
+  return {
+    x: obj.position.x,
+    z: obj.position.z,
+    cos: Math.cos(obj.rotation.y),
+    sin: Math.sin(obj.rotation.y),
+    minX: box.min.x, maxX: box.max.x, minZ: box.min.z, maxZ: box.max.z,
   };
 }

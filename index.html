@@ -32,7 +32,7 @@
 
   <header class="topbar">
     <span class="brand">우주 레이싱</span>
-    <span class="build">1-A 코스 미리보기</span>
+    <span class="build">1-B 연습 주행</span>
   </header>
 
   <aside class="course-card" aria-label="코스 정보">
@@ -50,7 +50,49 @@
       <button type="button" data-view="free"><kbd>3</kbd>자유롭게</button>
     </div>
     <p id="view-hint" class="hint"></p>
+    <button type="button" id="start-race" class="primary">연습 주행 시작 <kbd>Enter</kbd></button>
   </aside>
+
+  <section id="hud" hidden aria-label="경기 정보">
+    <div class="hud-panel hud-lap">
+      <p class="hud-label">바퀴</p>
+      <p class="hud-big"><b id="hud-lap">1</b><span>/<span id="hud-laps">3</span></span></p>
+      <dl>
+        <div><dt>이번 바퀴</dt><dd id="hud-lap-time">0:00.000</dd></div>
+        <div><dt>내 최고</dt><dd id="hud-best">-</dd></div>
+      </dl>
+    </div>
+    <div class="hud-panel hud-total">
+      <p class="hud-label">총 시간</p>
+      <p id="hud-total" class="hud-time">0:00.000</p>
+    </div>
+    <canvas id="minimap" aria-label="코스 지도"></canvas>
+    <div class="hud-panel hud-speed">
+      <p><b id="hud-speed">0</b><span>km/h</span></p>
+      <div class="speed-track"><span id="hud-speed-bar"></span></div>
+    </div>
+    <div class="hud-panel hud-help">
+      <p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 달리기</p>
+      <p><kbd>Space</kbd> 미끄러지며 돌기</p>
+      <p><kbd>C</kbd> 카메라 <span id="hud-cam">멀리</span> · <kbd>R</kbd> 주행선으로</p>
+      <p><kbd>P</kbd> 일시 정지</p>
+      <button type="button" id="hud-exit">그만 달리기</button>
+    </div>
+    <p id="hud-count" aria-live="assertive"></p>
+    <p id="hud-toast" aria-live="polite"></p>
+  </section>
+
+  <dialog id="results" aria-labelledby="result-title">
+    <h2 id="result-title">완주</h2>
+    <p class="result-total-label">총 시간</p>
+    <p id="result-total" class="result-total"></p>
+    <ol id="result-laps" class="result-laps"></ol>
+    <p id="result-note" class="result-note"></p>
+    <div class="result-actions">
+      <button type="button" id="result-again" class="primary">다시 달리기</button>
+      <button type="button" id="result-lobby">코스 보기로</button>
+    </div>
+  </dialog>
 
   <script type="module" src="./js/main.js"></script>
 </body>

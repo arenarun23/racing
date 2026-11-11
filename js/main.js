@@ -7,6 +7,10 @@ import { createTerrain } from './course/terrain.js';
 import { createRoad } from './course/road-ribbon.js';
 import { createLandmarks } from './course/moon-base.js';
 import { createSky } from './course/sky.js';
+import { createInput } from './core/input.js';
+import { createHud } from './ui/hud.js';
+import { createRace } from './race/race.js';
+import { formatTime } from './race/lap-timer.js';
 
 const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
@@ -50,6 +54,28 @@ async function boot() {
   fillCourseCard(course, path);
   bindViewButtons(view);
 
+  await setProgress(0.95, '레이서를 준비하는 중');
+  const input = createInput();
+  const hud = createHud(path);
+  const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input });
+  const results = createResults();
+
+  const startRace = () => {
+    results.close();
+    race.start();
+  };
+  const backToLobby = () => {
+    results.close();
+    race.stop();
+    view.resume();
+  };
+  $('#start-race').addEventListener('click', startRace);
+  $('#hud-exit').addEventListener('click', backToLobby);
+  $('#result-again').addEventListener('click', startRace);
+  $('#result-lobby').addEventListener('click', backToLobby);
+  race.onFinish((r) => results.open(r));
+  $('#results').addEventListener('cancel', backToLobby); // Esc로 결과 창을 닫으면 로비로
+
   renderer.compile(scene, camera);
   await setProgress(1, '준비 완료');
 
@@ -57,14 +83,43 @@ async function boot() {
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);
     const t = clock.elapsedTime;
-    view.update(dt);
+    if (race.running) race.update(dt);
+    else {
+      if (input.wasPressed('Enter') && !results.isOpen) startRace();
+      view.update(dt);
+    }
+    input.endFrame();
     sky.follow(camera);
     landmarks.update(t);
     renderer.render(scene, camera);
   });
 
   document.body.dataset.state = 'ready';
-  window.__race = { scene, camera, path, view }; // 개발 중 콘솔 확인용
+  document.body.dataset.mode = 'lobby';
+  window.__race = { scene, camera, path, view, race }; // 개발 중 콘솔 확인용
+}
+
+// 완주 결과 창
+function createResults() {
+  const dlg = $('#results');
+  return {
+    get isOpen() { return dlg.open; },
+    open(r) {
+      $('#result-total').textContent = formatTime(r.total);
+      const best = Math.min(...r.lapTimes);
+      $('#result-laps').innerHTML = r.lapTimes
+        .map((t, i) => `<li${t === best ? ' class="best"' : ''}><span>${i + 1}바퀴</span><b>${formatTime(t)}</b></li>`)
+        .join('');
+      const notes = [];
+      if (r.newTotal) notes.push('총 시간 새 기록');
+      if (r.newLap) notes.push('한 바퀴 새 기록');
+      $('#result-note').textContent = notes.length ? notes.join(' · ') : `내 최고 기록 ${formatTime(r.best.total)}`;
+      $('#result-note').dataset.tone = notes.length ? 'good' : '';
+      dlg.showModal();
+      $('#result-again').focus();
+    },
+    close() { if (dlg.open) dlg.close(); },
+  };
 }
 
 function fillCourseCard(course, path) {
@@ -93,6 +148,7 @@ function bindViewButtons(view) {
   };
   buttons.forEach((b) => b.addEventListener('click', () => select(b.dataset.view)));
   window.addEventListener('keydown', (e) => {
+    if (document.body.dataset.mode === 'race') return;
     const map = { 1: 'tour', 2: 'top', 3: 'free' };
     if (map[e.key]) select(map[e.key]);
   });

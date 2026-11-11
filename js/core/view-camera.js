@@ -83,6 +83,14 @@ export function createViewCamera(camera, dom, path, center) {
         camera.quaternion.slerp(goalQuat, 1 - Math.exp(-dt * 5));
       }
     },
+    // 경기를 마치고 돌아올 때: 지금 카메라 자리에서 부드럽게 이어 간다
+    resume() {
+      camera.fov = 60;
+      camera.updateProjectionMatrix();
+      fromPos.copy(camera.position);
+      fromQuat.copy(camera.quaternion);
+      blend = 0;
+    },
     jumpToStart() {
       progress = 0;
       goal(0);
