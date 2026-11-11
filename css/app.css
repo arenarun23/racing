@@ -1,0 +1,126 @@
+/* 우주 레이싱 — 화면 공통 색·글꼴 */
+:root {
+  color-scheme: dark;
+  --void: #060a14;
+  --panel: rgba(13, 21, 35, 0.84);
+  --panel-solid: #0d1523;
+  --line: rgba(150, 178, 215, 0.18);
+  --ink: #eef1f6;
+  --mute: #8e9bb0;
+  --signal: #f2a33a;      /* 연석·강조: 신호 주황 */
+  --signal-ink: #1a1206;
+  --ice: #7fd4ff;         /* 유도등·보조 강조 */
+  --radius-panel: 14px;
+  --radius-control: 8px;
+  --font: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: inherit; }
+
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* 로딩 화면 */
+#loading {
+  position: fixed; inset: 0; z-index: 20;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(1200px 600px at 70% 18%, rgba(127, 212, 255, 0.10), transparent 60%),
+    var(--void);
+  transition: opacity 0.6s ease, visibility 0.6s;
+}
+body[data-state='ready'] #loading { opacity: 0; visibility: hidden; }
+.load-inner { width: min(420px, 84vw); }
+.title {
+  margin: 0;
+  font-size: clamp(44px, 8vw, 72px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.title-sub { margin: 12px 0 36px; color: var(--mute); font-size: 15px; }
+.load-track { height: 2px; background: var(--line); overflow: hidden; }
+#load-bar {
+  display: block; height: 100%;
+  background: var(--signal);
+  transform-origin: left; transform: scaleX(0);
+  transition: transform 0.35s ease;
+}
+#load-step { margin: 12px 0 0; font-size: 13px; color: var(--mute); }
+body[data-state='error'] #load-step { color: #ff9c8a; }
+
+/* 상단 */
+.topbar {
+  position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 5;
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 18px 24px;
+  pointer-events: none;
+}
+.brand { font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+.build { font-size: 12px; color: var(--mute); }
+
+/* 코스 카드 */
+.course-card {
+  position: fixed; z-index: 5;
+  left: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: min(340px, calc(100vw - 48px));
+  padding: 20px 20px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.course-group { margin: 0 0 4px; font-size: 13px; color: var(--ice); }
+.course-name { margin: 0 0 16px; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+
+.stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  margin: 0 0 16px; padding: 12px 0;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.stats div + div { padding-left: 10px; border-left: 1px solid var(--line); }
+.stats dt { font-size: 12px; color: var(--mute); margin-bottom: 2px; }
+.stats dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stats small { font-size: 11px; font-weight: 500; color: var(--mute); margin-left: 2px; }
+
+.views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.views button {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; padding: 0 8px;
+  font: 500 14px var(--font); color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.views button:hover { background: rgba(255, 255, 255, 0.08); }
+.views button[aria-pressed='true'] { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); font-weight: 700; }
+.views button:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+.views kbd {
+  font: 500 11px var(--font);
+  padding: 1px 5px; border-radius: 4px;
+  border: 1px solid currentColor; opacity: 0.6;
+}
+.hint { margin: 10px 0 0; font-size: 13px; color: var(--mute); min-height: 1.4em; }
+
+@media (max-width: 560px) {
+  .topbar { padding: 14px 16px; }
+  .course-card { left: 12px; right: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding: 16px; }
+  .course-name { font-size: 22px; }
+  .views kbd { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #loading, #load-bar { transition: none; }
+}

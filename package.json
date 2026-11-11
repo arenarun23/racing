@@ -1,0 +1,12 @@
+{
+  "name": "racing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node build-preview.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0",
+    "three": "0.170.0"
+  }
+}
