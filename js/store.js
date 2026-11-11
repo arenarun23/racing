@@ -35,3 +35,37 @@ export function submitResult(courseId, { lapTimes, total }) {
   save(data);
   return { newLap: isLap, newTotal: isTotal, best: data.best[courseId] };
 }
+
+// 내 설정 (머신, 드라이버, 경기 옵션, 화면 설정)
+export const DEFAULT_PREFS = {
+  machine: 'racer',
+  color: '#f2a33a',
+  helmet: '#f4f1e8',
+  name: '',
+  difficulty: 'normal', // easy · normal · hard
+  tire: 'rock',
+  env: 'clear',
+  quiz: true,
+  laps: 3,
+  quality: 'standard',  // light · standard · sharp
+  autoThrottle: false,  // 저학년용: 가속 키를 누르지 않아도 달린다
+  camera: 'far',        // far · near · nose
+};
+
+export function getPrefs() {
+  return { ...DEFAULT_PREFS, ...(load().prefs || {}) };
+}
+
+export function setPrefs(patch) {
+  const data = load();
+  data.prefs = { ...DEFAULT_PREFS, ...(data.prefs || {}), ...patch };
+  save(data);
+  return data.prefs;
+}
+
+// 이 브라우저에 저장된 최고 기록을 모두 지운다
+export function clearBest() {
+  const data = load();
+  delete data.best;
+  save(data);
+}

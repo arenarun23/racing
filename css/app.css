@@ -389,3 +389,115 @@ button.secondary:focus-visible { outline: 2px solid var(--ice); outline-offset: 
   .hud-stack { display: none; }
   .boost { font-size: 11px; }
 }
+
+/* 3-A 상단 메뉴 */
+.topnav { margin-left: auto; display: flex; gap: 6px; pointer-events: auto; }
+.topnav button {
+  min-height: 34px; padding: 0 14px;
+  font: 500 13px var(--font); color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-control);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+.topnav button:hover { background: rgba(30, 44, 66, 0.9); }
+.topnav button:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+body[data-mode='race'] .topnav { display: none; }
+
+/* 로비 카드: 내용이 길어지면 카드 안에서 스크롤 */
+.course-card { max-height: calc(100dvh - 96px - env(safe-area-inset-top, 0px)); overflow-y: auto; }
+
+/* 머신 · 드라이버 */
+.picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 14px; }
+.pick {
+  display: grid; gap: 4px; text-align: left; padding: 10px 12px; min-height: 58px;
+  font: inherit; color: var(--ink);
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.pick:hover { background: rgba(255, 255, 255, 0.08); }
+.pick:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+.pick-label { font-size: 11px; color: var(--mute); }
+.pick-value { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pick-value b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pick-swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15); }
+.opt { grid-template-columns: 46px 1fr; }
+
+/* 창 (내 머신 · 설정 · 사용방법) */
+dialog.sheet {
+  width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+  padding: 0; color: var(--ink);
+  background: var(--panel-solid); border: 1px solid var(--line); border-radius: 18px;
+  overflow: hidden; display: none; flex-direction: column;
+}
+dialog.sheet[open] { display: flex; }
+dialog.sheet.narrow { width: min(440px, calc(100vw - 32px)); }
+dialog.sheet::backdrop { background: rgba(4, 7, 14, 0.6); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.sheet-head h2 { margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+.sheet-close {
+  min-height: 34px; padding: 0 14px; font: 500 13px var(--font); color: var(--ink);
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-control); cursor: pointer;
+}
+.sheet-close:focus-visible, .machine-grid button:focus-visible, .swatches button:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+.sheet-foot { padding: 14px 22px 18px; border-top: 1px solid var(--line); }
+.sheet-foot .primary { margin-top: 0; }
+.field-label { display: block; margin: 16px 0 8px; font-size: 13px; font-weight: 700; }
+.field-label span { font-weight: 400; color: var(--mute); margin-left: 6px; }
+.field-label:first-child { margin-top: 0; }
+
+.garage-body { display: grid; grid-template-columns: 1fr 340px; min-height: 0; overflow-y: auto; }
+#garage-preview {
+  width: 100%; height: 100%; min-height: 320px; display: block;
+  background: radial-gradient(ellipse at 50% 30%, #23324a, #0a111d 75%);
+}
+.garage-side { padding: 18px 22px; border-left: 1px solid var(--line); }
+.machine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.machine-grid button {
+  display: grid; gap: 2px; padding: 10px; text-align: left;
+  font: inherit; color: var(--ink);
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: var(--radius-control); cursor: pointer;
+}
+.machine-grid b { font-size: 14px; }
+.machine-grid span { font-size: 11px; color: var(--mute); }
+.machine-grid button[aria-pressed='true'] { border-color: var(--signal); background: rgba(242, 163, 58, 0.1); }
+.machine-grid button[aria-pressed='true'] b { color: var(--signal); }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatches button {
+  width: 30px; height: 30px; border-radius: 50%; padding: 0;
+  background: var(--c); border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); cursor: pointer;
+}
+.swatches button[aria-pressed='true'] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--panel-solid), 0 0 0 4px var(--signal); }
+#driver-name {
+  width: 100%; min-height: 40px; padding: 0 12px;
+  font: 500 15px var(--font); color: var(--ink);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); border-radius: var(--radius-control);
+}
+#driver-name:focus-visible { outline: 2px solid var(--ice); outline-offset: 1px; }
+
+.set-list { padding: 6px 22px 20px; overflow-y: auto; }
+.set-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.set-row:last-child { border-bottom: 0; }
+.set-row .field-label { margin-top: 0; }
+.set-row .hint { margin: 8px 0 0; }
+.set-row.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--mute); line-height: 1.5; cursor: pointer; }
+.set-row.check b { color: var(--ink); }
+.set-row.check input { accent-color: var(--signal); width: 18px; height: 18px; margin: 2px 0 0; flex: none; }
+#set-clear { margin-top: 0; }
+
+.help-body { padding: 4px 22px 22px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.help-body section { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.help-body h3 { margin: 0 0 8px; font-size: 15px; color: var(--ice); }
+.help-body p { margin: 0 0 8px; font-size: 14px; line-height: 1.65; color: #c9d1dd; word-break: keep-all; }
+.help-body code { font-size: 12px; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); }
+.help-body kbd, .keys kbd { font: 500 11px var(--font); color: var(--ink); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.keys { margin: 0; display: grid; gap: 6px; }
+.keys div { display: grid; grid-template-columns: 96px 1fr; gap: 10px; font-size: 13px; }
+.keys dd { margin: 0; color: #c9d1dd; }
+
+@media (max-width: 760px) {
+  .garage-body { grid-template-columns: 1fr; }
+  #garage-preview { min-height: 200px; height: 200px; }
+  .garage-side { border-left: 0; border-top: 1px solid var(--line); }
+  .help-body { grid-template-columns: 1fr; }
+  .topnav button { padding: 0 10px; }
+}

@@ -32,6 +32,7 @@ export function createHud(path) {
   };
   let boostKey = '';
   let tireKey = '';
+  let playerColor = '#f2a33a';
   const ctx = el.map.getContext('2d');
   const mapInfo = prepareMap(path);
   let toastTimer = 0;
@@ -74,7 +75,7 @@ export function createHud(path) {
       ctx.fill();
     }
     // 내 차
-    ctx.fillStyle = '#f2a33a';
+    ctx.fillStyle = playerColor;
     ctx.strokeStyle = '#060a14';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -93,6 +94,7 @@ export function createHud(path) {
       lastOrderKey = '';
     },
     setRacers(n) { el.cars.textContent = n; },
+    setPlayerColor(c) { playerColor = `#${c.toString(16).padStart(6, '0')}`; lastOrderKey = ''; },
     setBoost(count, stage) {
       const key = `${count}:${stage}`;
       if (key === boostKey) return;

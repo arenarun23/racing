@@ -13,10 +13,16 @@ import { createRace } from './race/race.js';
 import { formatTime } from './race/lap-timer.js';
 import { createQuizCard } from './ui/quiz-card.js';
 import { TIRES } from './race/surface.js';
+import { getPrefs, setPrefs } from './store.js';
+import { createGarage } from './ui/garage.js';
+import { createSettings } from './ui/settings.js';
 
 const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
-const quality = ['light', 'standard', 'sharp'].includes(params.get('q')) ? params.get('q') : 'standard';
+const prefs = getPrefs();
+// 그래픽 품질: 주소의 ?q= 가 있으면 그것을, 없으면 설정에 저장된 값을 쓴다
+const quality = ['light', 'standard', 'sharp'].includes(params.get('q')) ? params.get('q') : prefs.quality;
+const anyDialogOpen = () => !!document.querySelector('dialog[open]');
 
 // 무거운 단계 사이에 한 프레임씩 쉬어 로딩 막대가 실제로 움직이게 한다
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
@@ -63,13 +69,47 @@ async function boot() {
   const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input, quizCard });
   const results = createResults();
   const options = bindOptions();
+  let settingsValue = { laps: prefs.laps, autoThrottle: prefs.autoThrottle, camera: prefs.camera };
+  race.setPlayerLook(prefs);
+
+  // 내 머신 · 설정 · 사용방법 창
+  const updatePicks = () => {
+    const sum = garage.summary();
+    $('#pick-machine').textContent = sum.machine;
+    $('#pick-driver').textContent = sum.name || '이름 정하기';
+    $('#pick-swatch').style.background = sum.color;
+    $('#stat-laps').textContent = settingsValue.laps;
+  };
+  const garage = createGarage({
+    prefs,
+    onChange: (v) => {
+      setPrefs(v);
+      race.setPlayerLook(v);
+      updatePicks();
+    },
+  });
+  const settings = createSettings({
+    prefs,
+    onChange: (v, reload) => {
+      setPrefs(v);
+      settingsValue = { laps: v.laps, autoThrottle: v.autoThrottle, camera: v.camera };
+      updatePicks();
+      if (reload) location.reload(); // 그래픽 품질은 화면을 다시 불러와야 바뀐다
+    },
+  });
+  updatePicks();
+  $('#open-garage').addEventListener('click', () => garage.open());
+  $('#open-driver').addEventListener('click', () => { garage.open(); $('#driver-name').focus(); });
+  $('#open-settings').addEventListener('click', () => settings.open());
+  $('#open-help').addEventListener('click', () => $('#help').showModal());
+  document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 
   let lastMode = 'gp';
   const startRace = (mode = lastMode) => {
     lastMode = mode;
     results.close();
     document.activeElement?.blur(); // 버튼에 남은 포커스가 방향키를 가로채지 않게
-    race.start(mode, options.read());
+    race.start(mode, { ...options.read(), ...settingsValue });
   };
   const backToLobby = () => {
     results.close();
@@ -103,7 +143,7 @@ async function boot() {
     const t = clock.elapsedTime;
     if (race.running) race.update(dt);
     else {
-      if (input.wasPressed('Enter') && !results.isOpen && !document.activeElement?.matches('button')) startRace('gp');
+      if (input.wasPressed('Enter') && !anyDialogOpen() && !document.activeElement?.matches('button, input')) startRace('gp');
       view.update(dt);
     }
     input.endFrame();
@@ -119,7 +159,9 @@ async function boot() {
 
 // 로비의 경기 설정: 출발 바퀴 모드, 우주 환경, 퀴즈
 function bindOptions() {
-  const value = { tire: 'rock', env: 'clear' };
+  const value = { tire: prefs.tire, env: prefs.env, difficulty: prefs.difficulty };
+  $('#opt-quiz').checked = prefs.quiz;
+  $('#opt-quiz').addEventListener('change', (e) => setPrefs({ quiz: e.target.checked }));
   const hint = $('#opt-hint');
   const showHint = () => {
     const env = value.env === 'storm' ? ' 2바퀴째부터 태양풍으로 도로가 먼지에 덮여요.' : '';
@@ -130,9 +172,12 @@ function bindOptions() {
       const b = e.target.closest('button');
       if (!b) return;
       value[seg.dataset.opt] = b.dataset.v;
+      setPrefs({ [seg.dataset.opt]: b.dataset.v });
       seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       showHint();
     });
+    // 저장된 선택을 화면에 표시
+    seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === value[seg.dataset.opt])));
   });
   showHint();
   return { read: () => ({ ...value, quiz: $('#opt-quiz').checked }) };
@@ -196,7 +241,7 @@ function bindViewButtons(view) {
   };
   buttons.forEach((b) => b.addEventListener('click', () => select(b.dataset.view)));
   window.addEventListener('keydown', (e) => {
-    if (document.body.dataset.mode === 'race') return;
+    if (document.body.dataset.mode === 'race' || anyDialogOpen() || e.target.matches?.('input')) return;
     const map = { 1: 'tour', 2: 'top', 3: 'free' };
     if (map[e.key]) select(map[e.key]);
   });

@@ -17,6 +17,11 @@ export function createChaseCamera(camera) {
 
   return {
     get mode() { return CHASE_MODES[modeIndex]; },
+    setMode(id) {
+      const i = CHASE_MODES.findIndex((m) => m.id === id);
+      if (i >= 0) { modeIndex = i; first = true; }
+      return CHASE_MODES[modeIndex];
+    },
     cycle() {
       modeIndex = (modeIndex + 1) % CHASE_MODES.length;
       first = true;

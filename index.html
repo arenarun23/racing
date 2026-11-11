@@ -32,7 +32,11 @@
 
   <header class="topbar">
     <span class="brand">우주 레이싱</span>
-    <span class="build">2-B 부스터·퀴즈·피트</span>
+    <span class="build">3-A 머신·설정</span>
+    <nav class="topnav" aria-label="메뉴">
+      <button type="button" id="open-settings">설정</button>
+      <button type="button" id="open-help">사용방법</button>
+    </nav>
   </header>
 
   <aside class="course-card" aria-label="코스 정보">
@@ -50,7 +54,25 @@
       <button type="button" data-view="free"><kbd>3</kbd>자유롭게</button>
     </div>
     <p id="view-hint" class="hint"></p>
+    <div class="picks">
+      <button type="button" class="pick" id="open-garage">
+        <span class="pick-label">머신</span>
+        <span class="pick-value"><i id="pick-swatch"></i><b id="pick-machine">루나 레이서</b></span>
+      </button>
+      <button type="button" class="pick" id="open-driver">
+        <span class="pick-label">드라이버</span>
+        <span class="pick-value"><b id="pick-driver">이름 정하기</b></span>
+      </button>
+    </div>
     <div class="opts">
+      <div class="opt">
+        <span class="opt-name">난이도</span>
+        <div class="seg" data-opt="difficulty" role="group" aria-label="상대 레이서 난이도">
+          <button type="button" data-v="easy">입문</button>
+          <button type="button" data-v="normal">중급</button>
+          <button type="button" data-v="hard">상급</button>
+        </div>
+      </div>
       <div class="opt">
         <span class="opt-name">바퀴</span>
         <div class="seg" data-opt="tire" role="group" aria-label="출발 바퀴 모드">
@@ -134,6 +156,113 @@
     <p id="quiz-feedback" aria-live="polite"></p>
     <button type="button" id="quiz-next" class="primary" hidden>계속 달리기 <kbd>Enter</kbd></button>
   </section>
+
+  <dialog id="garage" class="sheet" aria-labelledby="garage-title">
+    <header class="sheet-head">
+      <h2 id="garage-title">내 머신</h2>
+      <button type="button" class="sheet-close" data-close>닫기</button>
+    </header>
+    <div class="garage-body">
+      <canvas id="garage-preview" aria-label="머신 미리보기"></canvas>
+      <div class="garage-side">
+        <p class="field-label">머신 <span>모양만 다르고 성능은 모두 같아요</span></p>
+        <div id="machine-grid" class="machine-grid"></div>
+        <p class="field-label">차체 색</p>
+        <div id="body-colors" class="swatches"></div>
+        <p class="field-label">헬멧 색</p>
+        <div id="helmet-colors" class="swatches"></div>
+        <label class="field-label" for="driver-name">드라이버 이름 <span>8자까지</span></label>
+        <input id="driver-name" type="text" maxlength="8" autocomplete="off" placeholder="예: 별빛">
+        <p class="hint">순위표와 결과에 이 이름이 나와요. 실명 대신 별명을 써 주세요.</p>
+      </div>
+    </div>
+    <footer class="sheet-foot"><button type="button" class="primary" data-close>이 머신으로 할게요</button></footer>
+  </dialog>
+
+  <dialog id="settings" class="sheet narrow" aria-labelledby="settings-title">
+    <header class="sheet-head">
+      <h2 id="settings-title">설정</h2>
+      <button type="button" class="sheet-close" data-close>닫기</button>
+    </header>
+    <div class="set-list">
+      <div class="set-row">
+        <p class="field-label">그래픽 품질 <span>바꾸면 화면을 다시 불러와요</span></p>
+        <div class="seg" data-set="quality">
+          <button type="button" data-v="light">가볍게</button>
+          <button type="button" data-v="standard">보통</button>
+          <button type="button" data-v="sharp">선명하게</button>
+        </div>
+        <p class="hint">화면이 끊기면 가볍게로 바꿔 주세요. 그림자가 꺼지고 해상도가 낮아져요.</p>
+      </div>
+      <div class="set-row">
+        <p class="field-label">바퀴 수</p>
+        <div class="seg" data-set="laps">
+          <button type="button" data-v="2">2바퀴</button>
+          <button type="button" data-v="3">3바퀴</button>
+          <button type="button" data-v="5">5바퀴</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <p class="field-label">출발 카메라 <span>달리는 중에는 C로 바꿔요</span></p>
+        <div class="seg" data-set="camera">
+          <button type="button" data-v="far">멀리</button>
+          <button type="button" data-v="near">가까이</button>
+          <button type="button" data-v="nose">운전석</button>
+        </div>
+      </div>
+      <label class="set-row check"><input type="checkbox" id="set-auto"> <span><b>자동 가속</b><br>가속 키를 누르지 않아도 앞으로 달려요. 방향키와 브레이크만 쓰면 돼서 저학년에게 알맞아요.</span></label>
+      <div class="set-row">
+        <p class="field-label">내 기록</p>
+        <button type="button" id="set-clear" class="secondary">이 컴퓨터의 최고 기록 지우기</button>
+        <p id="set-clear-note" class="hint" aria-live="polite"></p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="help" class="sheet" aria-labelledby="help-title">
+    <header class="sheet-head">
+      <h2 id="help-title">사용방법</h2>
+      <button type="button" class="sheet-close" data-close>닫기</button>
+    </header>
+    <div class="help-body">
+      <section>
+        <h3>조작</h3>
+        <dl class="keys">
+          <div><dt><kbd>↑</kbd> <kbd>W</kbd></dt><dd>앞으로</dd></div>
+          <div><dt><kbd>↓</kbd> <kbd>S</kbd></dt><dd>브레이크 · 뒤로</dd></div>
+          <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>방향 바꾸기</dd></div>
+          <div><dt><kbd>Space</kbd></dt><dd>미끄러지며 돌기</dd></div>
+          <div><dt><kbd>Shift</kbd></dt><dd>부스터 (켜진 동안 한 번 더 누르면 2단)</dd></div>
+          <div><dt><kbd>F</kbd> <kbd>T</kbd></dt><dd>피트 예약 · 바꿀 바퀴 고르기</dd></div>
+          <div><dt><kbd>C</kbd></dt><dd>카메라 바꾸기</dd></div>
+          <div><dt><kbd>R</kbd></dt><dd>주행선으로 돌아가기</dd></div>
+          <div><dt><kbd>P</kbd></dt><dd>일시 정지</dd></div>
+        </dl>
+      </section>
+      <section>
+        <h3>경기</h3>
+        <p>신호등이 모두 켜졌다가 초록으로 바뀌면 출발해요. 코스에 있는 체크포인트 세 곳을 차례로 지나고 출발선을 넘어야 한 바퀴로 인정돼요. 거꾸로 달리면 화면 위에 경고가 떠요.</p>
+        <p><b>그랑프리</b>는 탐사선 이름을 가진 레이서 5명과 겨루고, <b>혼자 연습하기</b>는 혼자 기록을 재요. 난이도는 상대 레이서의 실력이에요.</p>
+      </section>
+      <section>
+        <h3>부스터와 퀴즈</h3>
+        <p>부스터 2개를 갖고 출발해요. 바퀴마다 우주과학 퀴즈가 2문제 나오고, 맞히면 부스터가 1개 늘어요(최대 5개). 퀴즈를 푸는 동안에는 경기가 멈춰요.</p>
+      </section>
+      <section>
+        <h3>바퀴 모드와 피트</h3>
+        <p>코스 두 곳에 <b>레골리스 먼지 구간</b>이 있어요. 암반용은 포장로에서 빠르지만 먼지에서 미끄러지고, 먼지용은 그 반대예요. 겸용은 그 중간이에요.</p>
+        <p>달리는 중에 <kbd>F</kbd>로 피트를 예약하면 출발선 앞에서 멈춰 약 2.5초 동안 바퀴를 바꿔요.</p>
+      </section>
+      <section>
+        <h3>태양풍</h3>
+        <p>환경을 <b>후반 태양풍</b>으로 고르면 2바퀴째부터 전기를 띤 먼지가 떠올라 도로 전체를 덮어요. 바퀴를 바꿀지 판단해 보세요.</p>
+      </section>
+      <section>
+        <h3>선생님께</h3>
+        <p>컴퓨터가 느리면 설정에서 그래픽 품질을 <b>가볍게</b>로 바꾸세요. 기록과 설정은 지금 이 컴퓨터의 브라우저에만 저장돼요. 퀴즈 문항은 저장소의 <code>js/quiz/questions.js</code> 파일에서 고칠 수 있어요.</p>
+      </section>
+    </div>
+  </dialog>
 
   <dialog id="results" aria-labelledby="result-title">
     <h2 id="result-title">완주</h2>

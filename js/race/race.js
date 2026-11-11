@@ -9,6 +9,7 @@ import { getBest, submitResult } from '../store.js';
 import { createBooster } from './booster.js';
 import { TIRES, TIRE_ORDER, dustiness, tireMods } from './surface.js';
 import { createQuizDeck } from '../quiz/questions.js';
+import { hex } from '../vehicle/machines.js';
 
 const LAMP_OFF = 0x3a1414;
 const LAMP_RED = 0xff3b30;
@@ -25,6 +26,12 @@ export const RIVALS = [
   { name: '누리', color: 0x4f8cff, skill: 0.94 },
 ];
 const PLAYER_SLOT = 3; // 6대 중 4번째 칸에서 출발
+// 난이도: AI 실력 배율, 내가 앞서갈 때 AI가 따라오는 정도
+const DIFFICULTY = {
+  easy: { skill: 0.9, ahead: 0.9, behind: 1.08 },
+  normal: { skill: 1, ahead: 0.94, behind: 1.05 },
+  hard: { skill: 1.05, ahead: 0.99, behind: 1.02 },
+};
 const START_BOOSTERS = 2;
 const STORM_RAMP = 4; // 태양풍이 다 퍼지기까지 걸리는 시간(초)
 const PIT_TIME = 2.5; // 바퀴 교체에 걸리는 시간(초)
@@ -38,7 +45,7 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
   scene.add(dust.object);
 
   const makeRacer = (opts) => {
-    const model = createCarModel({ body: opts.color });
+    const model = createCarModel({ body: opts.color, style: opts.style });
     model.root.visible = false;
     scene.add(model.root);
     const physics = createCarPhysics({ path, terrain, colliders, gravity: course.gravity });
@@ -59,7 +66,7 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
   const setLamps = (lit, color = LAMP_RED) => lamps.forEach((l, i) => l.material.color.setHex(i < lit ? color : LAMP_OFF));
 
   let mode = 'gp';
-  let options = { tire: 'rock', env: 'clear', quiz: true };
+  let options = { tire: 'rock', env: 'clear', quiz: true, laps: course.laps, difficulty: 'normal', autoThrottle: false, camera: 'far' };
   let running = false;
   let quizActive = false;
   let quizScore = { right: 0, total: 0 };
@@ -105,7 +112,7 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
       const back = mode === 'gp' ? 10 + Math.floor(slot / 2) * 9 : 14;
       const side = mode === 'gp' ? (slot % 2 ? 3.4 : -3.4) : 0;
       r.physics.placeAt(1 - back / L, side);
-      r.timer = createLapTimer(course.laps);
+      r.timer = createLapTimer(options.laps || course.laps);
       r.finishTime = null;
       r.pace = 1;
       r.booster.reset(START_BOOSTERS);
@@ -116,7 +123,8 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
       r.boostCooldown = 4 + Math.random() * 6;
       r.model.root.visible = true;
       r.model.sync(r.physics.state, 0);
-      if (!r.isPlayer) r.ai = createAiDriver(path, profile, { skill: r.skill, lane: side * 0.6, seed: r.seed });
+      const diff = DIFFICULTY[options.difficulty] || DIFFICULTY.normal;
+      if (!r.isPlayer) r.ai = createAiDriver(path, profile, { skill: r.skill * diff.skill, lane: side * 0.6, seed: r.seed });
     });
     finishOrder = [];
     running = true;
@@ -130,8 +138,10 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
     pit.next = options.tire === 'dust' ? 'rock' : 'dust';
     deck.reset();
     setStormVisual();
+    cam.setMode(options.camera);
     cam.snap();
-    hud.setLaps(course.laps);
+    hud.setLaps(options.laps || course.laps);
+    hud.setPlayerColor(player.color);
     hud.setRacers(racers.length);
     hud.setBest(getBest(course.id).lap);
     hud.setCamera(cam.mode.label);
@@ -330,6 +340,16 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
     start,
     stop,
     onFinish(fn) { onFinish = fn; },
+    // 내 머신 모양·색·이름 바꾸기 (로비에서)
+    setPlayerLook({ machine = 'racer', color = '#f2a33a', helmet = '#f4f1e8', name = '' } = {}) {
+      scene.remove(player.model.root);
+      player.model = createCarModel({ body: hex(color), helmet: hex(helmet), style: machine });
+      player.model.root.visible = running;
+      scene.add(player.model.root);
+      player.color = hex(color);
+      player.name = name.trim() || '나';
+      if (running) player.model.sync(player.physics.state, 0);
+    },
     boost() {
       if (!running || quizActive) return;
       const stage = player.booster.press();
@@ -368,6 +388,8 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
       // 내 차
       const pt = player.timer.state;
       let controls = pt.phase === 'running' ? input.read() : { ...IDLE };
+      // 자동 가속: 브레이크를 누르지 않는 동안 계속 달린다 (저학년용)
+      if (options.autoThrottle && pt.phase === 'running' && !controls.brake) controls.throttle = 1;
       if (pt.phase === 'finished') controls = { ...IDLE, brake: Math.abs(player.physics.state.speed) > 2 ? 1 : 0 };
       if (pt.phase === 'running') {
         if (input.wasPressed('KeyR') && pit.phase === 'none') {
@@ -412,7 +434,8 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
         const mods = modsFor(r);
         if (st.phase === 'running') {
           const gap = raceDistance(r) - myDist;
-          const want = gap > 70 ? 0.94 : gap < -70 ? 1.05 : 1;
+          const diff = DIFFICULTY[options.difficulty] || DIFFICULTY.normal;
+          const want = gap > 70 ? diff.ahead : gap < -70 ? diff.behind : 1;
           r.pace += (want - r.pace) * Math.min(1, dt * 0.5);
           const others = racers.filter((o) => o !== r).map((o) => o.physics.state);
           // 앞쪽 노면을 보고 미끄러운 곳에서는 제한 속도를 낮춘다
