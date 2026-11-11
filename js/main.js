@@ -60,18 +60,21 @@ async function boot() {
   const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input });
   const results = createResults();
 
-  const startRace = () => {
+  let lastMode = 'gp';
+  const startRace = (mode = lastMode) => {
+    lastMode = mode;
     results.close();
-    race.start();
+    race.start(mode);
   };
   const backToLobby = () => {
     results.close();
     race.stop();
     view.resume();
   };
-  $('#start-race').addEventListener('click', startRace);
+  $('#start-race').addEventListener('click', () => startRace('gp'));
+  $('#start-solo').addEventListener('click', () => startRace('solo'));
   $('#hud-exit').addEventListener('click', backToLobby);
-  $('#result-again').addEventListener('click', startRace);
+  $('#result-again').addEventListener('click', () => startRace());
   $('#result-lobby').addEventListener('click', backToLobby);
   race.onFinish((r) => results.open(r));
   $('#results').addEventListener('cancel', backToLobby); // Esc로 결과 창을 닫으면 로비로
@@ -85,7 +88,7 @@ async function boot() {
     const t = clock.elapsedTime;
     if (race.running) race.update(dt);
     else {
-      if (input.wasPressed('Enter') && !results.isOpen) startRace();
+      if (input.wasPressed('Enter') && !results.isOpen && !document.activeElement?.matches('button')) startRace('gp');
       view.update(dt);
     }
     input.endFrame();
@@ -105,7 +108,15 @@ function createResults() {
   return {
     get isOpen() { return dlg.open; },
     open(r) {
+      $('#result-title').textContent = r.mode === 'gp' ? `${r.place}위로 완주` : '완주';
       $('#result-total').textContent = formatTime(r.total);
+      const st = $('#result-standings');
+      st.hidden = r.mode !== 'gp';
+      st.innerHTML = r.mode === 'gp'
+        ? r.standings
+          .map((s) => `<li${s.isPlayer ? ' class="me"' : ''}><span class="n">${s.place}</span><i style="background:#${s.color.toString(16).padStart(6, '0')}"></i><span>${s.name}</span><b>${s.time != null ? formatTime(s.time) : '달리는 중'}</b></li>`)
+          .join('')
+        : '';
       const best = Math.min(...r.lapTimes);
       $('#result-laps').innerHTML = r.lapTimes
         .map((t, i) => `<li${t === best ? ' class="best"' : ''}><span>${i + 1}바퀴</span><b>${formatTime(t)}</b></li>`)

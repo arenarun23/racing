@@ -19,9 +19,10 @@ export const TUNING = {
 
 const CURB = 1.6;
 
-export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62 }) {
+export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62, tuning = {} }) {
   const half = path.width / 2;
-  const g = gravity * TUNING.gravityScale;
+  const T = { ...TUNING, ...tuning }; // 차마다 성능을 다르게 줄 수 있다
+  const g = gravity * T.gravityScale;
 
   const state = {
     pos: new THREE.Vector3(),
@@ -74,7 +75,6 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
     state.respawned = false;
     state.landed = 0;
     const hint = state.proj ? state.proj.index : -1;
-    const T = TUNING;
 
     // 조향: 키보드 입력을 부드럽게
     const target = input.steer;
@@ -172,7 +172,7 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
 
   // 기지 시설과 부딪히면 밀어내고 속도를 줄인다
   function collide() {
-    const r = TUNING.carRadius;
+    const r = T.carRadius;
     for (const c of colliders) {
       const dx = state.pos.x - c.x;
       const dz = state.pos.z - c.z;
@@ -204,5 +204,5 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
     }
   }
 
-  return { state, step, placeAt, groundAt };
+  return { state, step, placeAt, groundAt, tuning: T };
 }

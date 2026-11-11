@@ -32,7 +32,7 @@
 
   <header class="topbar">
     <span class="brand">우주 레이싱</span>
-    <span class="build">1-B 연습 주행</span>
+    <span class="build">2-A 그랑프리</span>
   </header>
 
   <aside class="course-card" aria-label="코스 정보">
@@ -50,13 +50,22 @@
       <button type="button" data-view="free"><kbd>3</kbd>자유롭게</button>
     </div>
     <p id="view-hint" class="hint"></p>
-    <button type="button" id="start-race" class="primary">연습 주행 시작 <kbd>Enter</kbd></button>
+    <button type="button" id="start-race" class="primary">그랑프리 시작 <kbd>Enter</kbd></button>
+    <button type="button" id="start-solo" class="secondary">혼자 연습하기</button>
   </aside>
 
   <section id="hud" hidden aria-label="경기 정보">
     <div class="hud-panel hud-lap">
-      <p class="hud-label">바퀴</p>
-      <p class="hud-big"><b id="hud-lap">1</b><span>/<span id="hud-laps">3</span></span></p>
+      <div class="hud-bigs">
+        <div class="hud-pos">
+          <p class="hud-label">순위</p>
+          <p class="hud-big"><b id="hud-pos">1</b><span>/<span id="hud-cars">6</span></span></p>
+        </div>
+        <div>
+          <p class="hud-label">바퀴</p>
+          <p class="hud-big"><b id="hud-lap">1</b><span>/<span id="hud-laps">3</span></span></p>
+        </div>
+      </div>
       <dl>
         <div><dt>이번 바퀴</dt><dd id="hud-lap-time">0:00.000</dd></div>
         <div><dt>내 최고</dt><dd id="hud-best">-</dd></div>
@@ -66,6 +75,7 @@
       <p class="hud-label">총 시간</p>
       <p id="hud-total" class="hud-time">0:00.000</p>
     </div>
+    <ol id="hud-standings" class="hud-panel" aria-label="현재 순위"></ol>
     <canvas id="minimap" aria-label="코스 지도"></canvas>
     <div class="hud-panel hud-speed">
       <p><b id="hud-speed">0</b><span>km/h</span></p>
@@ -86,7 +96,8 @@
     <h2 id="result-title">완주</h2>
     <p class="result-total-label">총 시간</p>
     <p id="result-total" class="result-total"></p>
-    <ol id="result-laps" class="result-laps"></ol>
+    <ol id="result-standings" class="result-standings" aria-label="최종 순위"></ol>
+    <ol id="result-laps" class="result-laps" aria-label="바퀴별 기록"></ol>
     <p id="result-note" class="result-note"></p>
     <div class="result-actions">
       <button type="button" id="result-again" class="primary">다시 달리기</button>

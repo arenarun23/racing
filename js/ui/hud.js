@@ -7,6 +7,9 @@ export function createHud(path) {
   const el = {
     root: $('#hud'),
     lap: $('#hud-lap'),
+    pos: $('#hud-pos'),
+    cars: $('#hud-cars'),
+    standings: $('#hud-standings'),
     laps: $('#hud-laps'),
     lapTime: $('#hud-lap-time'),
     best: $('#hud-best'),
@@ -23,7 +26,9 @@ export function createHud(path) {
   let toastTimer = 0;
   let countTimer = 0;
 
-  function drawMap(carPos) {
+  let lastOrderKey = '';
+
+  function drawMap(carPos, rivals) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const size = el.map.clientWidth;
     if (el.map.width !== Math.round(size * dpr)) {
@@ -50,6 +55,13 @@ export function createHud(path) {
     const [sx, sz] = pts[0];
     ctx.fillStyle = '#eef1f6';
     ctx.fillRect(tx(sx) - 3, tz(sz) - 3, 6, 6);
+    // 상대 차
+    for (const r of rivals) {
+      ctx.fillStyle = `#${r.color.toString(16).padStart(6, '0')}`;
+      ctx.beginPath();
+      ctx.arc(tx(r.pos.x), tz(r.pos.z), 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // 내 차
     ctx.fillStyle = '#f2a33a';
     ctx.strokeStyle = '#060a14';
@@ -61,21 +73,33 @@ export function createHud(path) {
   }
 
   return {
-    show(on) {
+    show(on, mode = 'gp') {
       el.root.hidden = !on;
+      el.root.dataset.raceMode = mode;
       document.body.dataset.mode = on ? 'race' : 'lobby';
+      lastOrderKey = '';
     },
+    setRacers(n) { el.cars.textContent = n; },
     setLaps(n) { el.laps.textContent = n; },
     setBest(sec) { el.best.textContent = formatTime(sec); },
     setCamera(label) { el.cam.textContent = label; },
-    update(dt, { timer, state }) {
+    update(dt, { timer, state, place = 1, order = [], rivals = [] }) {
+      el.pos.textContent = place;
+      // 순위표는 순서가 바뀔 때만 다시 그린다
+      const key = order.map((o) => o.name + (o.done ? '!' : '')).join('|');
+      if (key !== lastOrderKey) {
+        lastOrderKey = key;
+        el.standings.innerHTML = order
+          .map((o, i) => `<li${o.isPlayer ? ' class="me"' : ''}><span class="n">${i + 1}</span><i style="background:#${o.color.toString(16).padStart(6, '0')}"></i><span>${o.name}</span>${o.done ? '<em>완주</em>' : ''}</li>`)
+          .join('');
+      }
       const kmh = Math.round(Math.abs(state.speed) * 3.6);
       el.speed.textContent = kmh;
       el.bar.style.transform = `scaleX(${Math.min(1, kmh / 160)})`;
       el.lap.textContent = Math.min(timer.state.lap, timer.state.laps);
       el.lapTime.textContent = formatTime(timer.lapTime);
       el.total.textContent = formatTime(timer.total);
-      drawMap(state.pos);
+      drawMap(state.pos, rivals);
       if (toastTimer > 0) {
         toastTimer -= dt;
         if (toastTimer <= 0) el.toast.classList.remove('on');
