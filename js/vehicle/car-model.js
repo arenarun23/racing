@@ -105,10 +105,12 @@ export function createCarModel({ body = 0xf2a33a, trim = 0x1d2633 } = {}) {
         if (w.front) w.pivot.rotation.y = state.steerVisual * 0.45;
       }
       const power = state.throttle;
+      const boost = state.boostLevel || 0; // 0, 1, 2단
       const k = 1 - Math.exp(-dt * 10);
       flame.material.opacity += ((0.25 + power * 0.75) - flame.material.opacity) * k;
-      flame.scale.y = 0.5 + power * 0.5 + Math.random() * 0.12;
-      flame.scale.x = 1.2 + power * 0.8;
+      flame.scale.y = 0.5 + power * 0.5 + boost * 0.5 + Math.random() * 0.12;
+      flame.scale.x = 1.2 + power * 0.8 + boost * 1.4;
+      flame.material.color.setRGB(1, boost === 2 ? 0.75 : 1, boost === 2 ? 0.55 : 1); // 2단은 주황빛
       for (const n of nozzles) n.material.color.setRGB(0.5 + power * 0.5, 0.83, 1);
     },
   };

@@ -18,6 +18,7 @@ export const TUNING = {
 };
 
 const CURB = 1.6;
+const NO_MODS = { speed: 1, accel: 1, grip: 1 };
 
 export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62, tuning = {} }) {
   const half = path.width / 2;
@@ -94,7 +95,7 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
     const highSpeed = 1 - 0.45 * Math.min(1, absV / T.maxSpeed);
     let yaw = state.steer * T.steerMax * lowSpeed * highSpeed * Math.sign(v || 1);
     if (state.sliding) yaw *= 1.35;
-    if (!state.grounded) yaw *= 0.25;
+    if (!state.grounded) yaw *= 0.6;
     state.heading += yaw * dt;
 
     // 새 방향 기준으로 속도를 앞/옆으로 나눈다 → 옆 성분은 접지력으로 줄어든다(미끄러짐)
@@ -103,11 +104,14 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
     let vf = state.vel.dot(fwd);
     let vl = state.vel.dot(right);
 
+    // mods: 부스터·바퀴 모드·노면이 주는 배율 (speed, accel, grip)
+    const m = input.mods || NO_MODS;
     if (state.grounded) {
-      const max = onRoad ? T.maxSpeed : T.offMaxSpeed;
+      const max = (onRoad ? T.maxSpeed : T.offMaxSpeed) * m.speed;
       if (input.throttle) {
-        if (vf < max) vf += T.accel * (1 - Math.max(0, vf / max) ** 2) * dt;
+        if (vf < max) vf += T.accel * m.accel * (1 - Math.max(0, vf / max) ** 2) * dt;
       }
+      if (vf > max * 1.02) vf -= (vf - max) * 1.5 * dt; // 부스터가 끝나면 서서히 원래 속도로
       if (input.brake) {
         if (vf > 0.5) vf -= T.brake * dt;
         else if (vf > -T.reverseMax) vf -= T.accel * 0.6 * dt;
@@ -116,10 +120,11 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
       if (!onRoad) vf -= vf * T.offDrag * dt;
       if (!input.throttle && !input.brake && Math.abs(vf) < 0.4) vf = 0;
       if (vf > max && !onRoad) vf -= (vf - max) * 2 * dt; // 도로 밖으로 나가면 빠르게 감속
-      const grip = state.sliding ? T.slideGrip : onRoad ? T.grip : T.offGrip;
+      const grip = (state.sliding ? T.slideGrip : onRoad ? T.grip : T.offGrip) * (onRoad ? m.grip : 1);
       vl *= Math.exp(-grip * dt);
     } else {
       vf -= vf * 0.02 * dt; // 진공: 공기 저항이 거의 없다
+      vl *= Math.exp(-T.grip * 0.35 * dt); // 공중에서도 조금은 방향을 잡을 수 있게 (게임용 보정)
     }
 
     state.vel.copy(fwd).multiplyScalar(vf).addScaledVector(right, vl);

@@ -11,6 +11,8 @@ import { createInput } from './core/input.js';
 import { createHud } from './ui/hud.js';
 import { createRace } from './race/race.js';
 import { formatTime } from './race/lap-timer.js';
+import { createQuizCard } from './ui/quiz-card.js';
+import { TIRES } from './race/surface.js';
 
 const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
@@ -57,14 +59,17 @@ async function boot() {
   await setProgress(0.95, '레이서를 준비하는 중');
   const input = createInput();
   const hud = createHud(path);
-  const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input });
+  const quizCard = createQuizCard();
+  const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input, quizCard });
   const results = createResults();
+  const options = bindOptions();
 
   let lastMode = 'gp';
   const startRace = (mode = lastMode) => {
     lastMode = mode;
     results.close();
-    race.start(mode);
+    document.activeElement?.blur(); // 버튼에 남은 포커스가 방향키를 가로채지 않게
+    race.start(mode, options.read());
   };
   const backToLobby = () => {
     results.close();
@@ -76,6 +81,16 @@ async function boot() {
   $('#hud-exit').addEventListener('click', backToLobby);
   $('#result-again').addEventListener('click', () => startRace());
   $('#result-lobby').addEventListener('click', backToLobby);
+  // 경기 화면의 바퀴·피트 버튼 (누른 뒤 포커스를 바로 돌려준다)
+  $('#hud-next-tire').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) race.setNextTire(b.dataset.v);
+    b?.blur();
+  });
+  $('#hud-pit').addEventListener('click', (e) => {
+    race.togglePit();
+    e.currentTarget.blur();
+  });
   race.onFinish((r) => results.open(r));
   $('#results').addEventListener('cancel', backToLobby); // Esc로 결과 창을 닫으면 로비로
 
@@ -102,6 +117,27 @@ async function boot() {
   window.__race = { scene, camera, path, view, race }; // 개발 중 콘솔 확인용
 }
 
+// 로비의 경기 설정: 출발 바퀴 모드, 우주 환경, 퀴즈
+function bindOptions() {
+  const value = { tire: 'rock', env: 'clear' };
+  const hint = $('#opt-hint');
+  const showHint = () => {
+    const env = value.env === 'storm' ? ' 2바퀴째부터 태양풍으로 도로가 먼지에 덮여요.' : '';
+    hint.textContent = `${TIRES[value.tire].label}: ${TIRES[value.tire].note}${env}`;
+  };
+  document.querySelectorAll('.course-card .seg[data-opt]').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      value[seg.dataset.opt] = b.dataset.v;
+      seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      showHint();
+    });
+  });
+  showHint();
+  return { read: () => ({ ...value, quiz: $('#opt-quiz').checked }) };
+}
+
 // 완주 결과 창
 function createResults() {
   const dlg = $('#results');
@@ -124,7 +160,8 @@ function createResults() {
       const notes = [];
       if (r.newTotal) notes.push('총 시간 새 기록');
       if (r.newLap) notes.push('한 바퀴 새 기록');
-      $('#result-note').textContent = notes.length ? notes.join(' · ') : `내 최고 기록 ${formatTime(r.best.total)}`;
+      const quiz = r.quiz && r.quiz.total ? ` · 퀴즈 ${r.quiz.right}/${r.quiz.total} 정답` : '';
+      $('#result-note').textContent = (notes.length ? notes.join(' · ') : `내 최고 기록 ${formatTime(r.best.total)}`) + quiz;
       $('#result-note').dataset.tone = notes.length ? 'good' : '';
       dlg.showModal();
       $('#result-again').focus();

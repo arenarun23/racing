@@ -43,7 +43,7 @@ export function createChaseCamera(camera) {
       camera.position.copy(pos);
       camera.lookAt(look);
       // 빠를수록 시야를 넓혀 속도감을 준다
-      const fov = 60 + Math.min(1, Math.abs(state.speed) / 44) * 14;
+      const fov = 60 + Math.min(1, Math.abs(state.speed) / 44) * 14 + (state.boostLevel || 0) * 4;
       if (Math.abs(camera.fov - fov) > 0.05) {
         camera.fov += (fov - camera.fov) * Math.min(1, dt * 3);
         camera.updateProjectionMatrix();

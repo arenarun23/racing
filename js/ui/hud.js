@@ -1,4 +1,6 @@
 import { formatTime } from '../race/lap-timer.js';
+import { TIRES } from '../race/surface.js';
+import { BOOST } from '../race/booster.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -20,7 +22,16 @@ export function createHud(path) {
     count: $('#hud-count'),
     cam: $('#hud-cam'),
     map: $('#minimap'),
+    pips: $('#hud-boost-pips'),
+    boostLabel: $('#hud-boost-label'),
+    tire: $('#hud-tire'),
+    surface: $('#hud-surface'),
+    nextTire: $('#hud-next-tire'),
+    pit: $('#hud-pit'),
+    env: $('#hud-env'),
   };
+  let boostKey = '';
+  let tireKey = '';
   const ctx = el.map.getContext('2d');
   const mapInfo = prepareMap(path);
   let toastTimer = 0;
@@ -76,10 +87,34 @@ export function createHud(path) {
     show(on, mode = 'gp') {
       el.root.hidden = !on;
       el.root.dataset.raceMode = mode;
+      boostKey = '';
+      tireKey = '';
       document.body.dataset.mode = on ? 'race' : 'lobby';
       lastOrderKey = '';
     },
     setRacers(n) { el.cars.textContent = n; },
+    setBoost(count, stage) {
+      const key = `${count}:${stage}`;
+      if (key === boostKey) return;
+      boostKey = key;
+      el.pips.innerHTML = Array.from({ length: BOOST.max }, (_, i) => `<i${i < count ? ' class="on"' : ''}></i>`).join('');
+      el.boostLabel.textContent = stage === 2 ? '부스터 2단' : stage === 1 ? '부스터 1단 · 한 번 더 누르면 2단' : `부스터 ${count}개`;
+      el.boostLabel.dataset.stage = stage;
+    },
+    setTire(tire, pit, dust) {
+      const key = `${tire}:${pit.next}:${pit.reserved}:${pit.phase}:${dust > 0.5}`;
+      if (key === tireKey) return;
+      tireKey = key;
+      el.tire.textContent = TIRES[tire].label;
+      el.surface.textContent = dust > 0.5 ? '먼지 구간' : '';
+      el.nextTire.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === pit.next)));
+      el.pit.textContent = pit.phase !== 'none' ? '정비 중' : pit.reserved ? '피트 예약됨 · 취소' : '피트 예약';
+      el.pit.dataset.on = pit.reserved || pit.phase !== 'none' ? 'true' : 'false';
+    },
+    setStorm(level) {
+      el.env.hidden = level < 0.05;
+      document.body.style.setProperty('--storm', level.toFixed(2));
+    },
     setLaps(n) { el.laps.textContent = n; },
     setBest(sec) { el.best.textContent = formatTime(sec); },
     setCamera(label) { el.cam.textContent = label; },

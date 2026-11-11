@@ -1,10 +1,10 @@
-// 키보드 입력: 방향키·WASD로 달리고, 스페이스로 미끄러지며 돈다(드리프트)
+// 키보드 입력: 방향키·WASD로 달리고, 스페이스로 미끄러지며 돈다(드리프트). 부스터는 Shift(race.js에서 처리)
 const KEYS = {
   up: ['ArrowUp', 'KeyW'],
   down: ['ArrowDown', 'KeyS'],
   left: ['ArrowLeft', 'KeyA'],
   right: ['ArrowRight', 'KeyD'],
-  slide: ['Space', 'ShiftLeft', 'ShiftRight'],
+  slide: ['Space'],
 };
 
 export function createInput() {

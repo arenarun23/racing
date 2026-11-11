@@ -32,7 +32,7 @@
 
   <header class="topbar">
     <span class="brand">우주 레이싱</span>
-    <span class="build">2-A 그랑프리</span>
+    <span class="build">2-B 부스터·퀴즈·피트</span>
   </header>
 
   <aside class="course-card" aria-label="코스 정보">
@@ -50,6 +50,25 @@
       <button type="button" data-view="free"><kbd>3</kbd>자유롭게</button>
     </div>
     <p id="view-hint" class="hint"></p>
+    <div class="opts">
+      <div class="opt">
+        <span class="opt-name">바퀴</span>
+        <div class="seg" data-opt="tire" role="group" aria-label="출발 바퀴 모드">
+          <button type="button" data-v="rock" aria-pressed="true">암반용</button>
+          <button type="button" data-v="all" aria-pressed="false">겸용</button>
+          <button type="button" data-v="dust" aria-pressed="false">먼지용</button>
+        </div>
+      </div>
+      <div class="opt">
+        <span class="opt-name">환경</span>
+        <div class="seg" data-opt="env" role="group" aria-label="우주 환경">
+          <button type="button" data-v="clear" aria-pressed="true">맑음</button>
+          <button type="button" data-v="storm" aria-pressed="false">후반 태양풍</button>
+        </div>
+      </div>
+      <label class="opt check"><input type="checkbox" id="opt-quiz" checked> 부스터 퀴즈 (바퀴마다 2문제)</label>
+      <p id="opt-hint" class="hint"></p>
+    </div>
     <button type="button" id="start-race" class="primary">그랑프리 시작 <kbd>Enter</kbd></button>
     <button type="button" id="start-solo" class="secondary">혼자 연습하기</button>
   </aside>
@@ -80,16 +99,40 @@
     <div class="hud-panel hud-speed">
       <p><b id="hud-speed">0</b><span>km/h</span></p>
       <div class="speed-track"><span id="hud-speed-bar"></span></div>
+      <div class="boost"><span id="hud-boost-pips" class="pips" aria-hidden="true"></span><span id="hud-boost-label">부스터</span></div>
     </div>
-    <div class="hud-panel hud-help">
-      <p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 달리기</p>
-      <p><kbd>Space</kbd> 미끄러지며 돌기</p>
-      <p><kbd>C</kbd> 카메라 <span id="hud-cam">멀리</span> · <kbd>R</kbd> 주행선으로</p>
-      <p><kbd>P</kbd> 일시 정지</p>
-      <button type="button" id="hud-exit">그만 달리기</button>
+    <div class="hud-stack">
+      <div class="hud-panel hud-tire">
+        <p class="hud-label">지금 바퀴</p>
+        <p class="tire-now"><b id="hud-tire">암반용</b><span id="hud-surface"></span></p>
+        <p class="hud-label">바꿀 바퀴 <kbd>T</kbd></p>
+        <div class="seg small" id="hud-next-tire" role="group" aria-label="피트에서 바꿀 바퀴">
+          <button type="button" tabindex="-1" data-v="rock">암반</button>
+          <button type="button" tabindex="-1" data-v="all">겸용</button>
+          <button type="button" tabindex="-1" data-v="dust">먼지</button>
+        </div>
+        <button type="button" tabindex="-1" id="hud-pit">피트 예약</button>
+        <p class="hud-note"><kbd>F</kbd> 예약하면 출발선 앞에서 멈춰 바꿔요</p>
+      </div>
+      <div class="hud-panel hud-help">
+        <p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 달리기</p>
+        <p><kbd>Space</kbd> 미끄러지기 · <kbd>Shift</kbd> 부스터</p>
+        <p><kbd>C</kbd> 카메라(<span id="hud-cam">멀리</span>) · <kbd>R</kbd> 주행선</p>
+        <p><kbd>P</kbd> 일시 정지</p>
+        <button type="button" tabindex="-1" id="hud-exit">그만 달리기</button>
+      </div>
     </div>
+    <p id="hud-env" class="hud-chip" hidden>태양풍 · 도로가 먼지로 덮였어요</p>
     <p id="hud-count" aria-live="assertive"></p>
     <p id="hud-toast" aria-live="polite"></p>
+  </section>
+
+  <section id="quiz" hidden role="dialog" aria-modal="true" aria-labelledby="quiz-q">
+    <p class="quiz-tag">부스터 퀴즈 <span id="quiz-count"></span></p>
+    <h2 id="quiz-q"></h2>
+    <ol id="quiz-choices"></ol>
+    <p id="quiz-feedback" aria-live="polite"></p>
+    <button type="button" id="quiz-next" class="primary" hidden>계속 달리기 <kbd>Enter</kbd></button>
   </section>
 
   <dialog id="results" aria-labelledby="result-title">
