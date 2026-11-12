@@ -75,6 +75,7 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
   function step(dt, input) {
     state.respawned = false;
     state.landed = 0;
+    state.hit = 0; // 이번 프레임에 시설과 부딪힌 세기 (효과음용)
     const hint = state.proj ? state.proj.index : -1;
 
     // 조향: 키보드 입력을 부드럽게
@@ -201,6 +202,7 @@ export function createCarPhysics({ path, terrain, colliders = [], gravity = 1.62
       const wnz = -nx * c.sin + nz * c.cos;
       const into = state.vel.x * wnx + state.vel.z * wnz;
       if (into < 0) {
+        state.hit = Math.max(state.hit, Math.min(1, -into / 15));
         state.vel.x -= wnx * into * 1.4;
         state.vel.z -= wnz * into * 1.4;
         state.vel.multiplyScalar(0.6);

@@ -177,6 +177,38 @@ const BUILDERS = {
     return g;
   },
 
+  rocket() {
+    // 화성 기지의 귀환 로켓과 발사탑
+    const g = new THREE.Group();
+    g.add(mesh(new THREE.CylinderGeometry(9, 9, 0.6, 36), M.dark, 0, 0.3, 0));
+    g.add(mesh(new THREE.CylinderGeometry(3, 3, 26, 24), M.panel, 0, 14, 0));
+    g.add(mesh(new THREE.ConeGeometry(3, 7, 24), M.panel, 0, 30.5, 0));
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const fin = mesh(new THREE.BoxGeometry(0.3, 6, 3.4), M.dark, Math.cos(a) * 3.4, 4, Math.sin(a) * 3.4);
+      fin.rotation.y = -a;
+      g.add(fin);
+    }
+    g.add(mesh(new THREE.BoxGeometry(2.6, 34, 2.6), M.amber, 6.4, 17, 0));
+    for (let y = 6; y < 32; y += 6) g.add(mesh(new THREE.BoxGeometry(3.4, 0.4, 0.4), M.dark, 4.6, y, 0));
+    const b = mesh(new THREE.SphereGeometry(0.5, 10, 8), M.beacon.clone(), 6.4, 34.6, 0);
+    b.userData.blink = 1.1;
+    g.add(b);
+    return g;
+  },
+
+  spires() {
+    // 유로파의 얼음 기둥 (얼음이 솟아 굳은 모양)
+    const g = new THREE.Group();
+    const ice = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, roughness: 0.15, metalness: 0.05, transparent: true, opacity: 0.85, emissive: 0x16384f, emissiveIntensity: 0.4 });
+    [[0, 0, 13, 2.2], [4, 3, 9, 1.6], [-3.5, 2, 7, 1.4], [2, -4, 10, 1.8], [-5, -3, 5, 1.1], [6.5, -1, 6, 1.2]].forEach(([x, z, h, r], i) => {
+      const spike = mesh(new THREE.ConeGeometry(r, h, 6), ice, x, h / 2 - 0.3, z);
+      spike.rotation.set((i % 3 - 1) * 0.12, i, (i % 2 ? 1 : -1) * 0.1);
+      g.add(spike);
+    });
+    return g;
+  },
+
   habitat() {
     const g = new THREE.Group();
     const hull = mesh(new THREE.CapsuleGeometry(4, 14, 8, 20), M.white, 0, 4, 0);
@@ -240,6 +272,9 @@ function makeCollider(obj) {
   obj.traverse((o) => {
     if (!o.isMesh || !o.castShadow) return;
     if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    // 바닥에 깔린 납작한 것(착륙장, 고리)은 차가 지나갈 수 있으니 빼고 센다
+    const bb = o.geometry.boundingBox;
+    if ((bb.max.y - bb.min.y) * o.scale.y < 0.8 && o.rotation.x === 0) return;
     tmp.copy(o.geometry.boundingBox).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
     box.union(tmp);
   });

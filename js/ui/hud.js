@@ -1,11 +1,12 @@
 import { formatTime } from '../race/lap-timer.js';
-import { TIRES } from '../race/surface.js';
+import { tireInfo } from '../race/surface.js';
 import { BOOST } from '../race/booster.js';
 
 const $ = (s) => document.querySelector(s);
 
 // 경기 화면 표시: 속도, 바퀴, 시간, 미니맵, 알림
 export function createHud(path) {
+  const course = path.course;
   const el = {
     root: $('#hud'),
     lap: $('#hud-lap'),
@@ -32,6 +33,9 @@ export function createHud(path) {
   };
   let boostKey = '';
   let tireKey = '';
+  // 코스에 맞는 이름으로 바꿔 둔다
+  el.env.textContent = course.theme?.storm?.chip || el.env.textContent;
+  el.nextTire.querySelectorAll('button').forEach((b) => { b.textContent = tireInfo(b.dataset.v, course).short; });
   let playerColor = '#f2a33a';
   const ctx = el.map.getContext('2d');
   const mapInfo = prepareMap(path);
@@ -107,8 +111,8 @@ export function createHud(path) {
       const key = `${tire}:${pit.next}:${pit.reserved}:${pit.phase}:${dust > 0.5}`;
       if (key === tireKey) return;
       tireKey = key;
-      el.tire.textContent = TIRES[tire].label;
-      el.surface.textContent = dust > 0.5 ? '먼지 구간' : '';
+      el.tire.textContent = tireInfo(tire, course).label;
+      el.surface.textContent = dust > 0.5 ? (course.theme?.zone || '먼지 구간') : '';
       el.nextTire.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === pit.next)));
       el.pit.textContent = pit.phase !== 'none' ? '정비 중' : pit.reserved ? '피트 예약됨 · 취소' : '피트 예약';
       el.pit.dataset.on = pit.reserved || pit.phase !== 'none' ? 'true' : 'false';

@@ -11,13 +11,14 @@ export function createRoad(path) {
   group.add(curbs(path, -1));
   group.add(edgeLights(path));
   group.add(startGate(path));
-  for (const [a, b] of path.course.dustZones || []) group.add(dustPatch(path, a, b));
-  group.add(stormLayer(path));
+  const dust = path.course.theme?.dust || [176, 168, 152];
+  for (const [a, b] of path.course.dustZones || []) group.add(dustPatch(path, a, b, dust));
+  group.add(stormLayer(path, dust));
   return group;
 }
 
 // 먼지 구간: 도로 위에 레골리스가 쌓인 띠 (양 끝은 흐리게)
-function dustPatch(path, from, to) {
+function dustPatch(path, from, to, color) {
   const n = path.samples.length;
   const i0 = Math.floor(from * n);
   const i1 = Math.ceil(to * n);
@@ -48,7 +49,7 @@ function dustPatch(path, from, to) {
   geo.setIndex(idx);
   geo.computeVertexNormals(); // 양면 재질이라 감기 방향은 신경 쓰지 않아도 된다
   const mat = new THREE.MeshStandardMaterial({
-    map: dustTexture(), vertexColors: true, transparent: true, depthWrite: false,
+    map: dustTexture(color), vertexColors: true, transparent: true, depthWrite: false,
     roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geo, mat);
@@ -58,10 +59,10 @@ function dustPatch(path, from, to) {
 }
 
 // 태양풍 때 도로 전체에 내려앉는 먼지 (평소에는 보이지 않음)
-function stormLayer(path) {
+function stormLayer(path, color) {
   const half = path.width / 2 + 0.6;
   const geo = ribbon(path, -half, half, 0.04);
-  const tex = dustTexture();
+  const tex = dustTexture(color);
   const mat = new THREE.MeshStandardMaterial({
     map: tex, transparent: true, opacity: 0, depthWrite: false, roughness: 1,
     polygonOffset: true, polygonOffsetFactor: -1, side: THREE.DoubleSide,
@@ -74,7 +75,7 @@ function stormLayer(path) {
 }
 
 let dustTex = null;
-function dustTexture() {
+function dustTexture([dr, dg, db] = [176, 168, 152]) {
   if (dustTex) return dustTex;
   const c = document.createElement('canvas');
   c.width = c.height = 256;
@@ -87,12 +88,13 @@ function dustTexture() {
     const v = 150 + Math.random() * 60;
     // 도로 가운데보다 가장자리에 먼지가 조금 더 쌓인다
     const edge = Math.abs(x - 128) / 128;
-    ctx.fillStyle = `rgba(${v},${v - 6},${v - 14},${0.05 + edge * 0.06})`;
+    const k = v / 180;
+    ctx.fillStyle = `rgba(${Math.round(dr * k)},${Math.round(dg * k)},${Math.round(db * k)},${0.05 + edge * 0.06})`;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = 'rgba(176,168,152,0.35)';
+  ctx.fillStyle = `rgba(${dr},${dg},${db},0.35)`;
   ctx.fillRect(0, 0, 256, 256);
   dustTex = new THREE.CanvasTexture(c);
   dustTex.wrapS = THREE.ClampToEdgeWrapping;

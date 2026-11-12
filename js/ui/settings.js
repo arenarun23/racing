@@ -5,13 +5,17 @@ const $ = (s) => document.querySelector(s);
 // 설정 창: 그래픽 품질, 자동 가속, 기본 카메라, 바퀴 수, 기록 지우기
 export function createSettings({ prefs, onChange }) {
   const dlg = $('#settings');
-  const value = { quality: prefs.quality, autoThrottle: prefs.autoThrottle, camera: prefs.camera, laps: prefs.laps };
+  const value = {
+    quality: prefs.quality, autoThrottle: prefs.autoThrottle, camera: prefs.camera, laps: prefs.laps,
+    sfx: prefs.sfx !== false, music: prefs.music !== false, tiltInvert: !!prefs.tiltInvert,
+  };
 
   function mark() {
     dlg.querySelectorAll('.seg[data-set]').forEach((seg) => {
       seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(value[seg.dataset.set]))));
     });
     $('#set-auto').checked = value.autoThrottle;
+    $('#set-tilt-invert').checked = value.tiltInvert;
   }
 
   dlg.querySelectorAll('.seg[data-set]').forEach((seg) => {
@@ -20,13 +24,18 @@ export function createSettings({ prefs, onChange }) {
       if (!b) return;
       const key = seg.dataset.set;
       const before = value[key];
-      value[key] = key === 'laps' ? Number(b.dataset.v) : b.dataset.v;
+      const v = b.dataset.v;
+      value[key] = key === 'laps' ? Number(v) : v === 'true' ? true : v === 'false' ? false : v;
       mark();
       onChange({ ...value }, key === 'quality' && before !== value.quality);
     });
   });
   $('#set-auto').addEventListener('change', (e) => {
     value.autoThrottle = e.target.checked;
+    onChange({ ...value }, false);
+  });
+  $('#set-tilt-invert').addEventListener('change', (e) => {
+    value.tiltInvert = e.target.checked;
     onChange({ ...value }, false);
   });
   $('#set-clear').addEventListener('click', () => {

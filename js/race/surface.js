@@ -7,6 +7,16 @@ export const TIRES = {
 };
 export const TIRE_ORDER = ['rock', 'all', 'dust'];
 
+// 코스에 맞춘 바퀴 이름과 설명 (달은 먼지, 화성은 모래, 유로파는 서리)
+export function tireInfo(id, course) {
+  const th = course?.theme || {};
+  const zone = th.zone || '먼지 구간';
+  const soft = th.softTire || '먼지용';
+  if (id === 'rock') return { label: '암반용', short: '암반', note: `포장로에서 가장 빠르지만 ${zone}에서 미끄러져요.` };
+  if (id === 'dust') return { label: soft, short: soft.replace('용', ''), note: `포장로에선 조금 느리지만 ${zone}에서 잘 버텨요.` };
+  return { label: '겸용', short: '겸용', note: '어디서나 무난해요.' };
+}
+
 // 태양풍: 태양에서 오는 전기를 띤 알갱이가 많아지면 달 먼지도 전기를 띠고 떠올라
 // 도로 전체에 얇게 내려앉는다 (게임에서는 도로가 먼지 구간처럼 변한다)
 export const STORM_DUST = 0.7;

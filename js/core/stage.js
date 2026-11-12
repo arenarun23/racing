@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { SUN_DIR } from '../course/sky.js';
 
 // 렌더러·장면·조명. 그래픽 품질(light / standard / sharp)에 따라 해상도와 그림자를 조절한다.
-export function createStage(canvas, quality = 'standard') {
+export function createStage(canvas, quality = 'standard', theme = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== 'light', powerPreference: 'high-performance' });
   const ratioCap = { light: 1, standard: 1.5, sharp: 2 }[quality] ?? 1.5;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, ratioCap));
@@ -13,12 +13,17 @@ export function createStage(canvas, quality = 'standard') {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x02040a);
+  scene.background = new THREE.Color(theme.sky ?? 0x02040a);
+  // 대기가 있는 곳(화성)은 멀리 있는 것이 흐려진다
+  if (theme.fog) {
+    scene.fog = new THREE.Fog(theme.sky, theme.fog.near, theme.fog.far);
+    scene.userData.fogBase = { ...theme.fog };
+  }
 
   const camera = new THREE.PerspectiveCamera(60, 1, 0.3, 6000);
 
   // 태양: 대기가 없어 그림자가 진하고 날카롭다
-  const sun = new THREE.DirectionalLight(0xfff6e8, 3.4);
+  const sun = new THREE.DirectionalLight(theme.sun ?? 0xfff6e8, theme.sunPower ?? 3.4);
   sun.position.copy(SUN_DIR).multiplyScalar(400);
   sun.castShadow = renderer.shadowMap.enabled;
   const size = quality === 'sharp' ? 4096 : 2048;
@@ -30,7 +35,8 @@ export function createStage(canvas, quality = 'standard') {
   scene.add(sun, sun.target);
 
   // 지구에서 반사된 빛(지구광)을 약하게 넣어 그늘에서도 형태가 보이게 한다
-  scene.add(new THREE.HemisphereLight(0x8fb4ff, 0x2b2620, 0.55));
+  const [skyFill, groundFill, fillPower] = theme.fill || [0x8fb4ff, 0x2b2620, 0.55];
+  scene.add(new THREE.HemisphereLight(skyFill, groundFill, fillPower));
   scene.add(new THREE.AmbientLight(0xffffff, 0.12));
 
   function focusShadow(center) {

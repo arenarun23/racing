@@ -4,14 +4,20 @@ import { seededRandom, fbm } from '../util/random.js';
 export const SUN_DIR = new THREE.Vector3(-0.55, 0.42, -0.72).normalize();
 export const EARTH_DIR = new THREE.Vector3(0.62, 0.3, -0.73).normalize();
 
-// 검은 하늘, 별, 지구, 태양 (카메라를 따라다니며 항상 멀리 보인다)
-export function createSky(seed = 1) {
+// 하늘: 별, 행성(지구·화성의 두 위성·목성), 태양 (카메라를 따라다니며 항상 멀리 보인다)
+export function createSky(seed = 1, theme = {}) {
   const group = new THREE.Group();
   group.name = 'sky';
-  group.add(stars(seed, 3200, 1.4, 0.75));
-  group.add(stars(seed + 1, 260, 3.2, 1));
-  group.add(earth());
-  group.add(sun());
+  if (theme.stars !== false) {
+    group.add(stars(seed, 3200, 1.4, 0.75));
+    group.add(stars(seed + 1, 260, 3.2, 1));
+  }
+  const planet = theme.planet || 'earth';
+  if (planet === 'earth') group.add(earth());
+  if (planet === 'mars-moons') group.add(marsMoons());
+  if (planet === 'jupiter') group.add(jupiter());
+  // 태양은 멀어질수록 작아 보인다 (화성은 지구의 약 1.5배, 유로파는 약 5배 거리)
+  group.add(sun({ earth: 260, 'mars-moons': 190, jupiter: 80 }[planet] ?? 260, theme.kind === 'mars'));
   return {
     group,
     follow(camera) { group.position.copy(camera.position); },
@@ -113,12 +119,67 @@ function earth() {
   return g;
 }
 
-function sun() {
+// 화성의 두 작은 위성 포보스·데이모스 (울퉁불퉁한 감자 모양)
+function marsMoons() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x8a7f74, roughness: 1, flatShading: true, fog: false });
+  [[EARTH_DIR, 70, 2200], [new THREE.Vector3(-0.3, 0.5, -0.81).normalize(), 32, 2300]].forEach(([dir, size, dist], i) => {
+    const geo = new THREE.IcosahedronGeometry(size, 1);
+    const p = geo.attributes.position;
+    const rand = seededRandom(40 + i);
+    for (let k = 0; k < p.count; k++) p.setXYZ(k, p.getX(k) * (1.3 + rand() * 0.15), p.getY(k) * (0.85 + rand() * 0.15), p.getZ(k) * (0.95 + rand() * 0.15));
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, mat);
+    m.position.copy(dir).multiplyScalar(dist);
+    m.rotation.set(0.3, i * 1.7, 0.5);
+    g.add(m);
+  });
+  return g;
+}
+
+// 목성: 유로파에서 보면 하늘의 아주 큰 부분을 차지한다 (줄무늬와 대적점)
+function jupiter() {
+  const w = 512;
+  const h = 256;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  const bands = ['#e9dcc3', '#c79d74', '#efe3cc', '#b98a62', '#e6d6b8', '#a9764f', '#ecdfc6', '#c69a70', '#e3d2b2'];
+  for (let y = 0; y < h; y++) {
+    const t = y / h;
+    const i = Math.floor((t + Math.sin(t * 40) * 0.006) * bands.length);
+    ctx.fillStyle = bands[Math.min(bands.length - 1, i)];
+    ctx.fillRect(0, y, w, 1);
+  }
+  ctx.globalAlpha = 0.25;
+  for (let k = 0; k < 900; k++) {
+    ctx.fillStyle = Math.random() < 0.5 ? '#ffffff' : '#7a4e30';
+    ctx.fillRect(Math.random() * w, Math.random() * h, 20 + Math.random() * 40, 1.5);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#b5553a';
+  ctx.beginPath();
+  ctx.ellipse(w * 0.62, h * 0.66, 22, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const globe = new THREE.Mesh(
+    new THREE.SphereGeometry(520, 48, 32),
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, fog: false }),
+  );
+  globe.rotation.set(0.05, 1.2, 0.08);
+  globe.position.copy(new THREE.Vector3(0.55, 0.38, -0.74).normalize()).multiplyScalar(2400);
+  globe.name = 'jupiter';
+  return globe;
+}
+
+function sun(size = 260, hazy = false) {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: glowTexture('rgba(255,250,235,1)', 'rgba(255,230,180,0)'),
+    map: glowTexture(hazy ? 'rgba(255,244,226,1)' : 'rgba(255,250,235,1)', 'rgba(255,230,180,0)'),
     blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
   }));
-  s.scale.setScalar(260);
+  s.scale.setScalar(size);
   s.position.copy(SUN_DIR).multiplyScalar(2300);
   return s;
 }

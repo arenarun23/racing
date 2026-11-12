@@ -32,7 +32,7 @@
 
   <header class="topbar">
     <span class="brand">우주 레이싱</span>
-    <span class="build">3-B 기록실·터치</span>
+    <span class="build">코스 3개·소리·기울기</span>
     <nav class="topnav" aria-label="메뉴">
       <button type="button" id="open-records">기록실</button>
       <button type="button" id="open-settings">설정</button>
@@ -41,8 +41,13 @@
   </header>
 
   <aside class="course-card" aria-label="코스 정보">
-    <p id="course-group" class="course-group"></p>
-    <h2 id="course-name" class="course-name"></h2>
+    <div class="course-head">
+      <div>
+        <p id="course-group" class="course-group"></p>
+        <h2 id="course-name" class="course-name"></h2>
+      </div>
+      <button type="button" id="open-courses" class="course-change">코스 바꾸기</button>
+    </div>
     <dl class="stats">
       <div><dt>길이</dt><dd><span id="stat-length"></span><small>m</small></dd></div>
       <div><dt>바퀴</dt><dd><span id="stat-laps"></span></dd></div>
@@ -87,6 +92,13 @@
         <div class="seg" data-opt="env" role="group" aria-label="우주 환경">
           <button type="button" data-v="clear" aria-pressed="true">맑음</button>
           <button type="button" data-v="storm" aria-pressed="false">후반 태양풍</button>
+        </div>
+      </div>
+      <div class="opt touch-only">
+        <span class="opt-name">조종</span>
+        <div class="seg" data-opt="control" role="group" aria-label="조종 방법">
+          <button type="button" data-v="buttons">화면 버튼</button>
+          <button type="button" data-v="tilt">기울이기</button>
         </div>
       </div>
       <label class="opt check"><input type="checkbox" id="opt-quiz" checked> 부스터 퀴즈 (바퀴마다 2문제)</label>
@@ -158,6 +170,7 @@
         <button type="button" data-key="ArrowUp" class="tp-gas">가속</button>
       </div>
       <div class="tp-menu">
+        <button type="button" data-key="KeyZ" class="tp-center">가운데</button>
         <button type="button" data-key="KeyC">카메라</button>
         <button type="button" data-key="KeyF">피트</button>
         <button type="button" data-key="KeyP">멈춤</button>
@@ -228,6 +241,18 @@
           <button type="button" data-v="nose">운전석</button>
         </div>
       </div>
+      <div class="set-row">
+        <p class="field-label">소리</p>
+        <div class="set-pair">
+          <span>효과음</span>
+          <div class="seg" data-set="sfx"><button type="button" data-v="true">켜기</button><button type="button" data-v="false">끄기</button></div>
+        </div>
+        <div class="set-pair">
+          <span>배경음</span>
+          <div class="seg" data-set="music"><button type="button" data-v="true">켜기</button><button type="button" data-v="false">끄기</button></div>
+        </div>
+      </div>
+      <label class="set-row check touch-only"><input type="checkbox" id="set-tilt-invert"> <span><b>기울기 좌우 반대로</b><br>기울인 쪽과 반대로 돌면 켜 주세요. 기기마다 센서 방향이 조금 다를 수 있어요.</span></label>
       <label class="set-row check"><input type="checkbox" id="set-auto"> <span><b>자동 가속</b><br>가속 키를 누르지 않아도 앞으로 달려요. 방향키와 브레이크만 쓰면 돼서 저학년에게 알맞아요.</span></label>
       <div class="set-row">
         <p class="field-label">내 기록</p>
@@ -272,14 +297,29 @@
         <p>달리는 중에 <kbd>F</kbd>로 피트를 예약하면 출발선 앞에서 멈춰 약 2.5초 동안 바퀴를 바꿔요.</p>
       </section>
       <section>
-        <h3>태양풍</h3>
-        <p>환경을 <b>후반 태양풍</b>으로 고르면 2바퀴째부터 전기를 띤 먼지가 떠올라 도로 전체를 덮어요. 바퀴를 바꿀지 판단해 보세요.</p>
+        <h3>코스와 후반 날씨</h3>
+        <p><b>코스 바꾸기</b>로 달 기지, 화성 협곡, 유로파 얼음 서킷 중에서 고를 수 있어요. 중력이 달라서 언덕에서 뜨는 정도가 달라요.</p>
+        <p>환경을 후반 날씨(달: 태양풍, 화성: 모래 폭풍, 유로파: 얼음 분출)로 고르면 2바퀴째부터 도로 전체가 덮여요. 바퀴를 바꿀지 판단해 보세요.</p>
+      </section>
+      <section>
+        <h3>태블릿과 어린 학생</h3>
+        <p>태블릿에서는 <b>조종 → 기울이기</b>를 고르면 태블릿을 운전대처럼 좌우로 돌려 조종해요. 가속은 저절로 되고, 출발 직전 자세가 '똑바로'가 돼요. 자세가 틀어지면 <b>가운데</b> 버튼을 누르세요.</p>
+        <p>난이도 <b>입문</b>에서는 주행 도우미가 켜져서 길을 따라 핸들을 살짝 도와주고, 굽은 길 앞에서 알아서 속도를 줄여요.</p>
       </section>
       <section>
         <h3>선생님께</h3>
         <p>컴퓨터가 느리면 설정에서 그래픽 품질을 <b>가볍게</b>로 바꾸세요. 기록과 설정은 지금 이 컴퓨터의 브라우저에만 저장돼요. 퀴즈 문항은 저장소의 <code>js/quiz/questions.js</code> 파일에서 고칠 수 있어요.</p>
       </section>
     </div>
+  </dialog>
+
+  <dialog id="courses" class="sheet" aria-labelledby="courses-title">
+    <header class="sheet-head">
+      <h2 id="courses-title">코스 고르기</h2>
+      <button type="button" class="sheet-close" data-close>닫기</button>
+    </header>
+    <div id="course-list" class="course-list"></div>
+    <p class="sheet-note">코스를 바꾸면 지형과 하늘을 새로 만드느라 화면을 다시 불러와요.</p>
   </dialog>
 
   <dialog id="records" class="sheet" aria-labelledby="records-title">

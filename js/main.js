@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createStage } from './core/stage.js';
 import { createViewCamera } from './core/view-camera.js';
-import { getCourse } from './course/courses.js';
+import { getCourse, COURSES } from './course/courses.js';
 import { buildCoursePath } from './course/course-path.js';
 import { createTerrain } from './course/terrain.js';
 import { createRoad } from './course/road-ribbon.js';
@@ -12,12 +12,14 @@ import { createHud } from './ui/hud.js';
 import { createRace } from './race/race.js';
 import { formatTime } from './race/lap-timer.js';
 import { createQuizCard } from './ui/quiz-card.js';
-import { TIRES } from './race/surface.js';
+import { tireInfo } from './race/surface.js';
 import { getPrefs, setPrefs } from './store.js';
 import { createGarage } from './ui/garage.js';
 import { createSettings } from './ui/settings.js';
 import { createRecords } from './ui/records.js';
 import { isTouchDevice, bindTouchPad } from './ui/touch.js';
+import { createSound } from './audio/sound.js';
+import { createTilt } from './core/tilt.js';
 
 const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
@@ -36,8 +38,8 @@ async function setProgress(ratio, text) {
 }
 
 async function boot() {
-  const course = getCourse(params.get('course') || 'moon-base');
-  const stage = createStage($('#scene'), quality);
+  const course = getCourse(params.get('course') || prefs.course || 'moon-base');
+  const stage = createStage($('#scene'), quality, course.theme);
   const { scene, camera, renderer } = stage;
 
   await setProgress(0.1, '주행선을 그리는 중');
@@ -56,7 +58,7 @@ async function boot() {
   scene.add(landmarks.group);
 
   await setProgress(0.9, '별을 켜는 중');
-  const sky = createSky(course.seed);
+  const sky = createSky(course.seed, course.theme);
   scene.add(sky.group);
 
   const view = createViewCamera(camera, renderer.domElement, path, terrain.center);
@@ -68,9 +70,18 @@ async function boot() {
   const input = createInput();
   const hud = createHud(path);
   const quizCard = createQuizCard();
-  const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input, quizCard });
+  // 소리: 화면을 처음 누르거나 키를 누르는 순간부터 난다 (브라우저 규칙)
+  const sound = createSound({ sfx: prefs.sfx !== false, music: prefs.music !== false });
+  sound.music('lobby');
+  const unlockAudio = () => sound.unlock();
+  window.addEventListener('pointerdown', unlockAudio, true);
+  window.addEventListener('keydown', unlockAudio, true);
+  const tilt = createTilt();
+  tilt.setInvert(prefs.tiltInvert);
+  const race = createRace({ scene, camera, path, terrain, colliders: landmarks.colliders, course, hud, input, quizCard, sound, tilt });
   const results = createResults();
-  const options = bindOptions();
+  const options = bindOptions(course);
+  bindCoursePicker(course);
   let settingsValue = { laps: prefs.laps, autoThrottle: prefs.autoThrottle, camera: prefs.camera };
   race.setPlayerLook(prefs);
 
@@ -95,6 +106,9 @@ async function boot() {
     onChange: (v, reload) => {
       setPrefs(v);
       settingsValue = { laps: v.laps, autoThrottle: v.autoThrottle, camera: v.camera };
+      sound.setSfx(v.sfx);
+      sound.setMusic(v.music);
+      tilt.setInvert(v.tiltInvert);
       updatePicks();
       if (reload) location.reload(); // 그래픽 품질은 화면을 다시 불러와야 바뀐다
     },
@@ -114,11 +128,21 @@ async function boot() {
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 
   let lastMode = 'gp';
-  const startRace = (mode = lastMode) => {
+  const startRace = async (mode = lastMode) => {
     lastMode = mode;
     results.close();
     document.activeElement?.blur(); // 버튼에 남은 포커스가 방향키를 가로채지 않게
-    race.start(mode, { ...options.read(), ...settingsValue });
+    sound.unlock();
+    const opts = { ...options.read(), ...settingsValue };
+    // 기울여서 조종: 처음 한 번 센서 권한을 받는다 (아이패드는 허용 창이 뜬다)
+    if (opts.control === 'tilt' && !tilt.enabled) {
+      const ok = await tilt.enable();
+      if (!ok) {
+        opts.control = 'buttons';
+        window.alert('이 기기에서는 기울기 센서를 쓸 수 없어서 화면 버튼으로 시작해요.');
+      }
+    }
+    race.start(mode, opts);
   };
   const backToLobby = () => {
     results.close();
@@ -166,18 +190,22 @@ async function boot() {
 
   document.body.dataset.state = 'ready';
   document.body.dataset.mode = 'lobby';
-  window.__race = { scene, camera, path, view, race }; // 개발 중 콘솔 확인용
+  window.__race = { scene, camera, path, view, race, landmarks, tilt, sound }; // 개발 중 콘솔 확인용
 }
 
 // 로비의 경기 설정: 출발 바퀴 모드, 우주 환경, 퀴즈
-function bindOptions() {
-  const value = { tire: prefs.tire, env: prefs.env, difficulty: prefs.difficulty };
+function bindOptions(course) {
+  // 코스에 맞는 이름으로 바꿔 둔다 (먼지용·모래용·서리용, 태양풍·모래 폭풍·얼음 분출)
+  $('.seg[data-opt=tire] button[data-v=dust]').textContent = tireInfo('dust', course).label;
+  $('.seg[data-opt=env] button[data-v=storm]').textContent = course.theme?.storm?.label || '후반 날씨';
+  const value = { tire: prefs.tire, env: prefs.env, difficulty: prefs.difficulty, control: prefs.control || 'buttons' };
   $('#opt-quiz').checked = prefs.quiz;
   $('#opt-quiz').addEventListener('change', (e) => setPrefs({ quiz: e.target.checked }));
   const hint = $('#opt-hint');
   const showHint = () => {
-    const env = value.env === 'storm' ? ' 2바퀴째부터 태양풍으로 도로가 먼지에 덮여요.' : '';
-    hint.textContent = `${TIRES[value.tire].label}: ${TIRES[value.tire].note}${env}`;
+    const env = value.env === 'storm' ? ` ${course.theme?.storm?.hint || ''}` : '';
+    const t = tireInfo(value.tire, course);
+    hint.textContent = `${t.label}: ${t.note}${env}`;
   };
   document.querySelectorAll('.course-card .seg[data-opt]').forEach((seg) => {
     seg.addEventListener('click', (e) => {
@@ -220,6 +248,34 @@ function watchPerformance() {
       if (fps < 28) tip.hidden = false;
     },
   };
+}
+
+// 코스 바꾸기 창: 고르면 저장하고 화면을 다시 불러온다 (코스마다 지형·하늘을 새로 만든다)
+function bindCoursePicker(current) {
+  const dlg = $('#courses');
+  const list = $('#course-list');
+  list.innerHTML = COURSES.map((c) => {
+    const len = Math.round(buildCoursePath(c).length).toLocaleString('ko-KR');
+    return `<button type="button" class="course-pick" data-id="${c.id}" aria-pressed="${c.id === current.id}">
+      <span class="cp-group">${c.group} · ${c.place}</span>
+      <b>${c.name}</b>
+      <span class="cp-sum">${c.theme?.summary || ''}</span>
+      <span class="cp-stats"><i>길이 ${len}m</i><i>중력 ${c.gravity} m/s²</i><i>${c.theme?.zone || ''} ${c.dustZones?.length || 0}곳</i></span>
+    </button>`;
+  }).join('');
+  list.addEventListener('click', (e) => {
+    const b = e.target.closest('.course-pick');
+    if (!b) return;
+    if (b.dataset.id === current.id) {
+      dlg.close();
+      return;
+    }
+    setPrefs({ course: b.dataset.id });
+    const url = new URL(location.href);
+    url.searchParams.delete('course');
+    location.href = url.toString();
+  });
+  $('#open-courses').addEventListener('click', () => dlg.showModal());
 }
 
 // 완주 결과 창

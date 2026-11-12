@@ -14,10 +14,21 @@ export function createTerrain(path, { quality = 'standard' } = {}) {
   path.samples.forEach((s) => center.add(s.p));
   center.divideScalar(path.samples.length).setY(0);
 
-  const craters = makeCraters(path, center, rand);
+  const kind = course.theme?.kind || 'moon';
+  const craters = makeCraters(path, center, rand, { moon: 70, mars: 28, europa: 6 }[kind] ?? 70);
 
   function naturalHeight(x, z) {
     let h = fbm(x / 220, z / 220, 4, course.seed) * 7 + fbm(x / 45, z / 45, 3, course.seed + 5) * 1.1;
+    if (kind === 'mars') {
+      // 바람이 만든 모래 언덕(사구): 한 방향으로 늘어선 물결
+      h += Math.sin((x * 0.8 + z * 0.6) / 14 + fbm(x / 90, z / 90, 2, 9) * 4) * 1.4;
+      h += fbm(x / 400, z / 400, 3, 31) * 10;
+    } else if (kind === 'europa') {
+      // 얼음 지각이 갈라지며 생긴 이중 능선
+      const line = Math.abs(Math.sin((x * 0.35 - z * 0.94) / 38 + fbm(x / 160, z / 160, 2, 4) * 3));
+      h += Math.exp(-(((line - 0.06) / 0.05) ** 2)) * 2.2;
+      h *= 0.7;
+    }
     for (const c of craters) {
       const d = Math.hypot(x - c.x, z - c.z);
       if (d > c.r * 1.8) continue;
@@ -53,15 +64,12 @@ export function createTerrain(path, { quality = 'standard' } = {}) {
     const h = heightAt(x, z);
     pos.setY(i, h);
 
-    // 바다(어두운 현무암 평원)와 고지(밝은 회색)를 큰 무늬로 섞는다
-    const mare = smoothstep(-0.15, 0.25, fbm(x / 400, z / 400, 2, 77));
-    let g = lerp(0.56, 0.4, mare) + fbm(x / 12, z / 12, 2, 3) * 0.04;
-    g += Math.min(0, h) * 0.006;
     const far = Math.hypot(x - center.x, z - center.z);
-    g *= 1 - smoothstep(420, SIZE / 2, far) * 0.55;
-    colors[i * 3] = g * 1.0;
-    colors[i * 3 + 1] = g * 0.985;
-    colors[i * 3 + 2] = g * 0.96;
+    const fade = 1 - smoothstep(420, SIZE / 2, far) * (kind === 'mars' ? 0.15 : 0.55);
+    const [r, g, b] = groundColor(kind, x, z, h);
+    colors[i * 3] = r * fade;
+    colors[i * 3 + 1] = g * fade;
+    colors[i * 3 + 2] = b * fade;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
@@ -75,16 +83,36 @@ export function createTerrain(path, { quality = 'standard' } = {}) {
 
   const group = new THREE.Group();
   group.add(mesh);
-  group.add(createRocks(path, heightAt, center, rand, quality));
+  group.add(createRocks(path, heightAt, center, rand, quality, course.theme?.rock ?? 0x8d8a84));
 
   return { group, heightAt, center };
 }
 
-function makeCraters(path, center, rand) {
+// 땅 색: 달(회색 고지와 어두운 바다) / 화성(붉은 흙과 짙은 바위) / 유로파(흰 얼음과 갈색 줄무늬)
+function groundColor(kind, x, z, h) {
+  const n = fbm(x / 12, z / 12, 2, 3) * 0.04;
+  if (kind === 'mars') {
+    const dark = smoothstep(-0.1, 0.35, fbm(x / 300, z / 300, 2, 51));
+    const k = lerp(1, 0.68, dark) + n + Math.min(0, h) * 0.004;
+    return [0.62 * k, 0.33 * k, 0.19 * k];
+  }
+  if (kind === 'europa') {
+    const line = Math.abs(Math.sin((x * 0.35 - z * 0.94) / 38 + fbm(x / 160, z / 160, 2, 4) * 3));
+    const stain = Math.exp(-(((line - 0.06) / 0.07) ** 2)) * 0.75 + smoothstep(0.2, 0.5, fbm(x / 260, z / 260, 2, 8)) * 0.35;
+    const k = 1.02 + n;
+    return [lerp(0.86, 0.6, stain) * k, lerp(0.93, 0.44, stain) * k, lerp(1.0, 0.32, stain) * k];
+  }
+  // 달: 바다(어두운 현무암 평원)와 고지(밝은 회색)를 큰 무늬로 섞는다
+  const mare = smoothstep(-0.15, 0.25, fbm(x / 400, z / 400, 2, 77));
+  const g = lerp(0.56, 0.4, mare) + n + Math.min(0, h) * 0.006;
+  return [g, g * 0.985, g * 0.96];
+}
+
+function makeCraters(path, center, rand, count = 70) {
   const list = [];
   const half = path.width / 2;
   let tries = 0;
-  while (list.length < 70 && tries < 2000) {
+  while (list.length < count && tries < 2000) {
     tries++;
     const big = rand() < 0.12;
     const r = big ? 26 + rand() * 40 : 4 + rand() * 14;
@@ -97,10 +125,10 @@ function makeCraters(path, center, rand) {
   return list;
 }
 
-function createRocks(path, heightAt, center, rand, quality) {
+function createRocks(path, heightAt, center, rand, quality, color = 0x8d8a84) {
   const count = quality === 'light' ? 220 : 520;
   const geo = new THREE.DodecahedronGeometry(1, 0);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x8d8a84, roughness: 1, flatShading: true });
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: color === 0xc4d6e2 ? 0.35 : 1, flatShading: true });
   const mesh = new THREE.InstancedMesh(geo, mat, count);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
