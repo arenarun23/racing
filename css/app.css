@@ -501,3 +501,86 @@ dialog.sheet::backdrop { background: rgba(4, 7, 14, 0.6); }
   .help-body { grid-template-columns: 1fr; }
   .topnav button { padding: 0 10px; }
 }
+
+/* 3-B 기록실 */
+.sheet-head .tabs { display: flex; gap: 4px; margin-right: auto; margin-left: 18px; }
+.tabs button {
+  min-height: 32px; padding: 0 14px; font: 500 13px var(--font); color: var(--mute);
+  background: transparent; border: 1px solid transparent; border-radius: 999px; cursor: pointer;
+}
+.tabs button[aria-selected='true'] { color: var(--ink); background: rgba(255, 255, 255, 0.07); border-color: var(--line); }
+.tabs button:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+.records-body { padding: 18px 22px; overflow-y: auto; min-height: 220px; }
+.sheet-note { margin: 0; padding: 10px 22px 16px; font-size: 12px; color: var(--mute); border-top: 1px solid var(--line); }
+.empty { margin: 40px 0; text-align: center; color: var(--mute); font-size: 14px; }
+.best-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.best-card { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 255, 255, 0.03); }
+.best-group { margin: 0 0 2px; font-size: 12px; color: var(--ice); }
+.best-card h3 { margin: 0 0 12px; font-size: 18px; letter-spacing: -0.02em; }
+.best-card dl { margin: 0; display: grid; gap: 6px; }
+.best-card dl div { display: flex; justify-content: space-between; font-size: 13px; }
+.best-card dt { color: var(--mute); }
+.best-card dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 500; }
+.best-card .lap dd { color: var(--signal); font-weight: 700; }
+.table-wrap { overflow-x: auto; }
+.runs { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+.runs th { text-align: left; font-weight: 500; color: var(--mute); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.runs td { padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.runs .num { font-variant-numeric: tabular-nums; }
+.runs .place { color: var(--signal); }
+.runs span { color: var(--mute); margin-left: 2px; }
+.runs .sub { display: block; margin: 2px 0 0; font-size: 11px; }
+.result-actions button:not(.primary) + button:not(.primary) { margin-top: 0; }
+
+/* 성능 안내 */
+.perf-tip {
+  position: fixed; z-index: 8; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: min(320px, calc(100vw - 48px)); padding: 16px;
+  background: var(--panel-solid); border: 1px solid var(--signal); border-radius: var(--radius-panel);
+}
+.perf-tip[hidden] { display: none; }
+.perf-tip p { margin: 0 0 4px; font-size: 14px; line-height: 1.55; word-break: keep-all; }
+.perf-tip .primary { margin-top: 10px; min-height: 40px; font-size: 14px; }
+body[data-mode='race'] .perf-tip { display: none; }
+
+/* 터치 조작 (태블릿·휴대폰) */
+.touch-pad[hidden] { display: none; }
+.touch-pad { position: absolute; inset: 0; pointer-events: none; }
+.touch-pad button {
+  pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  font: 700 15px var(--font); color: var(--ink);
+  background: rgba(13, 21, 35, 0.62); border: 1px solid rgba(150, 178, 215, 0.35); border-radius: 50%;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.touch-pad button.on { background: rgba(242, 163, 58, 0.55); border-color: var(--signal); }
+.tp-steer {
+  position: absolute; left: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 14px;
+}
+.tp-steer button { width: 84px; height: 84px; font-size: 26px; }
+.tp-pedals {
+  position: absolute; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: auto auto; grid-template-areas: 'boost slide' 'brake gas'; gap: 12px; align-items: end;
+}
+.tp-boost { grid-area: boost; width: 70px; height: 70px; border-color: var(--ice) !important; }
+.tp-slide { grid-area: slide; width: 70px; height: 70px; justify-self: end; }
+.tp-brake { grid-area: brake; width: 76px; height: 76px; }
+.tp-gas { grid-area: gas; width: 96px; height: 96px; font-size: 17px !important; }
+.tp-menu {
+  position: absolute; right: 20px; top: calc(110px + env(safe-area-inset-top, 0px));
+  display: grid; gap: 8px;
+}
+.tp-menu button { width: auto; height: 38px; padding: 0 14px; border-radius: 999px; font-size: 13px; }
+/* 터치 화면에서는 버튼과 겹치는 것들을 옮기거나 숨긴다 */
+body[data-touch] .hud-stack { display: none; }
+body[data-touch] #minimap { left: 24px; bottom: auto; top: calc(212px + env(safe-area-inset-top, 0px)); width: 120px; height: 120px; }
+body[data-touch] #hud-standings { display: none; }
+body[data-touch] .hud-speed { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); min-width: 150px; padding: 8px 16px 10px; }
+body[data-touch] .hud-speed b { font-size: 34px; }
+@media (max-width: 760px) {
+  body[data-touch] #minimap { top: calc(170px + env(safe-area-inset-top, 0px)); width: 96px; height: 96px; left: 12px; }
+  body[data-touch] .hud-speed { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+  .tp-steer button { width: 72px; height: 72px; }
+  .tp-gas { width: 84px; height: 84px; }
+  .sheet-head .tabs { margin-left: 8px; }
+}

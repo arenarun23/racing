@@ -16,6 +16,8 @@ import { TIRES } from './race/surface.js';
 import { getPrefs, setPrefs } from './store.js';
 import { createGarage } from './ui/garage.js';
 import { createSettings } from './ui/settings.js';
+import { createRecords } from './ui/records.js';
+import { isTouchDevice, bindTouchPad } from './ui/touch.js';
 
 const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
@@ -102,6 +104,13 @@ async function boot() {
   $('#open-driver').addEventListener('click', () => { garage.open(); $('#driver-name').focus(); });
   $('#open-settings').addEventListener('click', () => settings.open());
   $('#open-help').addEventListener('click', () => $('#help').showModal());
+  const records = createRecords();
+  $('#open-records').addEventListener('click', () => records.open('best'));
+  $('#result-records').addEventListener('click', () => {
+    backToLobby();
+    records.open('runs');
+  });
+  if (isTouchDevice(params)) bindTouchPad(input);
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 
   let lastMode = 'gp';
@@ -138,8 +147,11 @@ async function boot() {
   await setProgress(1, '준비 완료');
 
   const clock = new THREE.Clock();
+  const perf = watchPerformance();
   renderer.setAnimationLoop(() => {
-    const dt = Math.min(clock.getDelta(), 0.1);
+    const raw = clock.getDelta();
+    perf.frame(raw);
+    const dt = Math.min(raw, 0.1);
     const t = clock.elapsedTime;
     if (race.running) race.update(dt);
     else {
@@ -181,6 +193,33 @@ function bindOptions() {
   });
   showHint();
   return { read: () => ({ ...value, quiz: $('#opt-quiz').checked }) };
+}
+
+// 처음 몇 초 동안 화면이 얼마나 부드러운지 재 보고, 느리면 '가볍게'를 권한다
+function watchPerformance() {
+  let time = 0;
+  let frames = 0;
+  let done = quality === 'light' || prefs.perfTipSeen;
+  const tip = $('#perf-tip');
+  $('#perf-apply').addEventListener('click', () => {
+    setPrefs({ quality: 'light', perfTipSeen: true });
+    location.reload();
+  });
+  $('#perf-close').addEventListener('click', () => {
+    setPrefs({ perfTipSeen: true });
+    tip.hidden = true;
+  });
+  return {
+    frame(dt) {
+      if (done || document.hidden) return;
+      time += dt;
+      frames++;
+      if (time < 6) return;
+      done = true;
+      const fps = frames / time;
+      if (fps < 28) tip.hidden = false;
+    },
+  };
 }
 
 // 완주 결과 창

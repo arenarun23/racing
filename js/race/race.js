@@ -5,11 +5,11 @@ import { createChaseCamera } from '../core/chase-camera.js';
 import { createDust } from '../fx/dust.js';
 import { createLapTimer, formatTime } from './lap-timer.js';
 import { createAiDriver, buildSpeedProfile } from './ai-driver.js';
-import { getBest, submitResult } from '../store.js';
+import { getBest, submitResult, addRun } from '../store.js';
 import { createBooster } from './booster.js';
 import { TIRES, TIRE_ORDER, dustiness, tireMods } from './surface.js';
 import { createQuizDeck } from '../quiz/questions.js';
-import { hex } from '../vehicle/machines.js';
+import { hex, machineName } from '../vehicle/machines.js';
 
 const LAMP_OFF = 0x3a1414;
 const LAMP_RED = 0xff3b30;
@@ -143,7 +143,7 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
     hud.setLaps(options.laps || course.laps);
     hud.setPlayerColor(player.color);
     hud.setRacers(racers.length);
-    hud.setBest(getBest(course.id).lap);
+    hud.setBest(getBest(course.id, options.laps || course.laps).lap);
     hud.setCamera(cam.mode.label);
     hud.show(true, mode);
     setLamps(0);
@@ -179,11 +179,18 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
         const label = left === 1 ? '마지막 바퀴' : left > 1 ? `${e.lap}바퀴 완료` : '';
         if (label) hud.toast(`${label} · ${formatTime(e.time)}`, 2.2, e.best ? 'good' : '');
       } else if (e.type === 'finish') {
-        const result = submitResult(course.id, e);
+        const laps = options.laps || course.laps;
+        const result = submitResult(course.id, e, laps);
         hud.setBest(result.best.lap);
         const place = finishOrder.indexOf(player) + 1;
         hud.count(mode === 'gp' ? `${place}위` : '완주!', 1.4);
         const quiz = options.quiz ? { ...quizScore } : null;
+        // 기록실에 남길 경주 한 판
+        addRun({
+          course: course.id, courseName: course.name, mode, place: mode === 'gp' ? place : null, racers: racers.length,
+          laps, total: e.total, bestLap: Math.min(...e.lapTimes), name: player.name, machine: machineName(player.machine),
+          difficulty: options.difficulty, quiz,
+        });
         setTimeout(() => onFinish({ ...e, ...result, course, mode, place, quiz, standings: snapshot() }), 1400);
       }
     }
@@ -347,6 +354,7 @@ export function createRace({ scene, camera, path, terrain, colliders, course, hu
       player.model.root.visible = running;
       scene.add(player.model.root);
       player.color = hex(color);
+      player.machine = machine;
       player.name = name.trim() || '나';
       if (running) player.model.sync(player.physics.state, 0);
     },

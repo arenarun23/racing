@@ -36,6 +36,12 @@ export function createInput() {
       };
     },
     wasPressed(code) { return pressed.has(code); },
+    // 화면 터치 버튼용: 키를 누르고 떼는 것과 똑같이 처리한다
+    press(code) {
+      if (!held.has(code)) pressed.add(code);
+      held.add(code);
+    },
+    release(code) { held.delete(code); },
     endFrame() { pressed.clear(); },
     clear,
   };
